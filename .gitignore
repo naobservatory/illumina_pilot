@@ -41,6 +41,12 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 
+# Content of sequences folder
+sequences
+
+# Including the sequences folder itself
+!sequences/.gitkeep
+
 # Content of Slurm output folder
 slurm/czid/*
 slurm/nf-core-mag/*
