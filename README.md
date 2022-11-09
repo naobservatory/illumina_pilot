@@ -6,3 +6,5 @@ DNA sequences that are analyzed here stem from 12 Illumina samples; gained from 
 
 More information on the sequencing runs can be found [here](https://docs.google.com/document/d/1QiYgZGewYyg2gFzawYGRzTuMXbvwpJsTy27k3IrH3fQ/edit#)(only accessible for NAO members).
 
+# TODO
+Edit water control status in CZID.
