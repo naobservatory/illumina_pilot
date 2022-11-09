@@ -41,10 +41,12 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 
-# Content of sequences folder
-sequences
+# Including the lgos folder without content
+logs/*
+!logs/.gitkeep
 
-# Including the sequences folder itself
+# Including the sequences folder without content
+sequences/*
 !sequences/.gitkeep
 
 # Content of Slurm output folder
