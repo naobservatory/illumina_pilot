@@ -9,4 +9,4 @@ More information on the sequencing runs can be found [here](https://docs.google.
 # TODO
 1. Edit water control status in CZID.
 2. Add instructions to download sequences.
-
+3. Add failed Illumina runs (i.e. empty fastq files) to README and CZID description
