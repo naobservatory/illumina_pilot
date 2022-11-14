@@ -144,26 +144,25 @@ The following code chunk should do the trick but is very slow, apparently becaus
 ```{r, eval = F}
 
 biom_json$type <- 'Taxon table'
-biom_json$type
+
+
 jsonlite::write_json(
   biom_json,
-  path(illumina_data_path, '2022_11_14_Illumina_fixed_pilot_nt_r.biom')
+  path(illumina_data_path, '2022_11_14_Illumina_pilot_nt_r_fixed.biom')
 )
 ```
 
 As the above runs fast enough, we do not need the code below:
 
 ```{r}
-biom_text <- path(illumina_data_path, '2022_11_14_Illumina_pilot_nt_r.biom') %>%
+biom_text <- path(illumina_data_path, '2022_11_14_Illumina_pilot_nt_r.biom') %>% 
   read_file
-stopifnot( identical(biom_text %>% str_count('"Table"'), 1L) ) 
-    #QUESTION, what does 1L mean here? 
-      #ANSWER, it is simply a way to make code run faster, as 1L is an integer and uses 4 bytes while 1 is a numerical and uses 8 bites
+stopifnot( identical(biom_text %>% str_count('"Table"'), 1L) )
 biom_text_fixed <- biom_text %>%
   str_replace('"Table"', '"Taxon table"')
 write_file(
   biom_text_fixed,
-  path(illumina_data_path, '2022_11_14_Illumina_pilot_nt_r.biom')
+  path(illumina_data_path, '2022_11_14_Illumina_pilot_nt_r_fixed.biom')
 )
 
 ``` 
@@ -172,7 +171,8 @@ The above chunk reads in the BIOM file's contents as a single string, checks tha
 We should now be able to load the corrected BIOM file with the biomformat package,
 
 ```{r}
-biom <- path(illumina_data_path, '2022_11_14_Illumina_fixed_pilot_nt_r.biom') %>% read_biom() 
+biom <- path(illumina_data_path, '2022_11_14_Illumina_pilot_nt_r_fixed.biom') %>% read_biom() %>% 
+  print
 ```
 
 Note: For most objects in R, the `print()` and `glimpse()` methods silently return the object as well as printing information about it.
