@@ -1,0 +1,18 @@
+---
+title: "tbd_rmarkdown"
+author:
+  - name: Simon Grimm
+    url: {}
+date: 2022-11-08
+description: |
+categories:
+draft: false
+output:
+  distill::distill_article:
+    self_contained: false
+    dev: svg
+    toc: true
+editor_options:
+  markdown:
+    wrap: 72
+---
