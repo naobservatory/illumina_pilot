@@ -1,4 +1,4 @@
-Sample.Name,Host Organism,Sample Type,Nucleotide Type,Collection Date,Wastewater Plant,is_enriched,Water Control,Collection Location,Illumina ID,Experiment Type, Vol,Conc,Pool,Notes,Genome
+Sample Name,Host Organism,Sample Type,Nucleotide Type,Collection Date,Wastewater Plant,is_enriched,Water Control,Collection Location,Illumina ID,Experiment Type, Vol,Conc,Pool,Notes,Genome
 221014Esv_D22-10169,Human,Environmental,DNA,2020-05,Anonymous,0,No,USA,1 IL,P1,13,3.71,null,Type=genomicDNA; Notes=PEG 1,null
 221014Esv_D22-10170,Human,Environmental,DNA,2020-05,Anonymous,0,No,USA,2 IL,P2,13,0.8,null,Type=genomicDNA; Notes=PEG 2,null
 221014Esv_D22-10171,Human,Environmental,DNA,2020-05,Anonymous,0,No,USA,3 IL,P3,13,1.72,null,Type=genomicDNA; Notes=PEG 3, null
