@@ -1,0 +1,13 @@
+"Sample ID","Project ID","Name","Vol","Conc","Pool","Notes","Genome"
+D22-10035,221014Esv,P1,13,3.71,null,Type=genomicDNA; Notes=PEG 1,null
+D22-10036,221014Esv,P2,13,0.8,null,Type=genomicDNA; Notes=PEG 2,null
+D22-10037,221014Esv,P3,13,1.72,null,Type=genomicDNA; Notes=PEG 3, null
+D22-10038,221014Esv,P-C,13,0.068,null,Type=genomicDNA; Notes=Tap water (PEG),null
+D22-10039,221014Esv,CU1,13,2.32,null,Type=genomicDNA; Notes=Ceres (unfiltered) 1,null
+D22-10040,221014Esv,CU2,13,2.69,null,Type=genomicDNA; Notes=Ceres (unfiltered) 2,null
+D22-10041,221014Esv,CF,13,null,null,Type=genomicDNA; Notes=Ceres (filtered),null
+D22-10042,221014Esv,CU-C,13,null,null,Type=genomicDNA; Notes=Tap water (unfiltered; Ceres),null
+D22-10043,221014Esv,A1,13,1.89,null,Type=null; Notes=Amicon 1,null
+D22-10044,221014Esv,A2,13,2.61,null,Type=null; Notes=Amicon 2,null
+D22-10045,221014Esv,A3,13,1.7,null,Type=null; Notes=Amicon 3,null
+D22-10046,221014Esv,A-C,13,null,null,Type=null; Notes=Tap water (Amicon),null
