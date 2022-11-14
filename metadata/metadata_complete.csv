@@ -1,0 +1,20 @@
+Sample.Name,Host Organism,Sample Type,Nucleotide Type,Collection Date,Wastewater Plant,is_enriched,Water Control,Collection Location,Illumina ID,Experiment Type, Vol,Conc,Pool,Notes,Genome
+221014Esv_D22-10169,Human,Environmental,DNA,2020-05,Anonymous,0,No,USA,1 IL,P1,13,3.71,null,Type=genomicDNA; Notes=PEG 1,null
+221014Esv_D22-10170,Human,Environmental,DNA,2020-05,Anonymous,0,No,USA,2 IL,P2,13,0.8,null,Type=genomicDNA; Notes=PEG 2,null
+221014Esv_D22-10171,Human,Environmental,DNA,2020-05,Anonymous,0,No,USA,3 IL,P3,13,1.72,null,Type=genomicDNA; Notes=PEG 3, null
+221014Esv_D22-10172,Human,Environmental,DNA,2020-05,Anonymous,0,No,USA,4 IL,P-C,13,0.068,null,Type=genomicDNA; Notes=Tap water (PEG),null
+221014Esv_D22-10173,Human,Environmental,DNA,2020-05,Anonymous,0,No,USA,5 IL,CU1,13,2.32,null,Type=genomicDNA; Notes=Ceres (unfiltered) 1,null
+221014Esv_D22-10174,Human,Environmental,DNA,2020-05,Anonymous,0,No,USA,6 IL,CU2,13,2.69,null,Type=genomicDNA; Notes=Ceres (unfiltered) 2,null
+221014Esv_D22-10175,Human,Environmental,DNA,2020-05,Anonymous,0,No,USA,7 IL,CF,13,null,null,Type=genomicDNA; Notes=Ceres (filtered),null
+221014Esv_D22-10176,Human,Environmental,DNA,2020-05,Anonymous,0,No,USA,8 IL,CU-C,13,null,null,Type=genomicDNA; Notes=Tap water (unfiltered; Ceres),null
+221014Esv_D22-10177,Human,Environmental,DNA,2020-05,Anonymous,0,No,USA,9 IL,A1,13,1.89,null,Type=null; Notes=Amicon 1,null
+221014Esv_D22-10178,Human,Environmental,DNA,2020-05,Anonymous,0,No,USA,10 IL,A2,13,2.61,null,Type=null; Notes=Amicon 2,null
+221014Esv_D22-10179,Human,Environmental,DNA,2020-05,Anonymous,0,No,USA,11 IL,A3,13,1.7,null,Type=null; Notes=Amicon 3,null
+221014Esv_D22-10180,Human,Environmental,DNA,2020-05,Anonymous,0,No,USA,12 IL,A-C,13,null,null,Type=null; Notes=Tap water (Amicon),null
+221014Esv_D22-10330,Human,Environmental,DNA,2020-05,Anonymous,0,No,USA,1 IL,P1,13,3.71,null,Type=genomicDNA; Notes=PEG 1,null
+221014Esv_D22-10331,Human,Environmental,DNA,2020-05,Anonymous,0,No,USA,3 IL,P3,13,1.72,null,Type=genomicDNA; Notes=PEG 3, null
+221014Esv_D22-10332,Human,Environmental,DNA,2020-05,Anonymous,0,No,USA,5 IL,CU1,13,2.32,null,Type=genomicDNA; Notes=Ceres (unfiltered) 1,null
+221014Esv_D22-10333,Human,Environmental,DNA,2020-05,Anonymous,0,No,USA,6 IL,CU2,13,2.69,null,Type=genomicDNA; Notes=Ceres (unfiltered) 2,null
+221014Esv_D22-10334,Human,Environmental,DNA,2020-05,Anonymous,0,No,USA,9 IL,A1,13,1.89,null,Type=null; Notes=Amicon 1,null
+221014Esv_D22-10335,Human,Environmental,DNA,2020-05,Anonymous,0,No,USA,10 IL,A2,13,2.61,null,Type=null; Notes=Amicon 2,null
+221014Esv_D22-10336,Human,Environmental,DNA,2020-05,Anonymous,0,No,USA,11 IL,A3,13,1.7,null,Type=null; Notes=Amicon 3,null
