@@ -1,0 +1,574 @@
+---
+title: "CZID R analysis demo"
+description: |
+author:
+  - name: Michael R. McLaren
+    url: {}
+categories:
+  - R
+bibliography: ../../_references.bib
+date: 2022-10-31
+draft: false
+output:
+  distill::distill_article:
+    self_contained: false
+    dev: svg
+    toc: true
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  cache = TRUE,
+  autodep = TRUE,
+  cache.comments = FALSE,
+  dpi = 300
+)
+```
+ 
+# Background
+
+possible outline
+
+- study intro
+  - rna viromics study - https://journals.asm.org/doi/full/10.1128/AEM.01448-21
+  - or hjelmso et al
+- sequencing analysis
+  - czid
+- data input for R
+  - download output from czid
+    - two formats
+  - Load csv into R
+  - Load biom into R
+  - cleaning
+    - tax
+    - sample data
+- basic data checks and stats
+  - follow stressed bird microbiomes project
+- analysis
+  - taxonomic composition
+    - domains
+      - domain level barplot
+      - ratios -> log scale
+    - most abundant viruses, viral prevalence vs abundance -> table
+    - ratio of viruses / bacteria
+    - effect of enrichment on viral ratio
+  - reproduce rothman figure 4
+    - bray curtis NMDS
+    - shannon index (viruses only?)
+    - relative abundance (prop) for 18 viruses
+      - these viruses were choen based on ANCOM; could use that or a different method e.g. corncob; or just look at the most abundant viruses
+  - look at effect of enrichment
+    - aldex? corncob?
+
+# R setup
+
+Start by loading some useful R packages,
+
+```{r}
+# set of data analysis and viz tools
+library(tidyverse)
+
+# file system helpers
+library(fs)
+
+# specifying locations within a project
+library(here)
+
+# microbiome analysis helpers
+library(biomformat)
+library(speedyseq)
+
+# plotting helpers
+library(cowplot)
+library(patchwork)
+library(ggbeeswarm)
+
+theme_set(theme_cowplot())
+```
+
+I'll work with data from @hjelmso2019meta.
+
+```{r}
+rothman_data_path <- here("_data/rothman2021rnav/czid")
+dir_ls(rothman_data_path) %>% path_file
+hjelmso_data_path <- here("_data/hjelmso2019meta/czid")
+dir_ls(hjelmso_data_path) %>% path_file
+```
+
+
+# Data import
+
+## From a BIOM file (@hjelmso2019meta data)
+
+Note, this output format is listed as being in Beta.
+
+https://biom-format.org/
+
+Note, CZID export of a BIOM file with all Rothman samples is currently failing for me for an unknown reason.
+Therefore, I will demonstrate with a BIOM file of the Hjelmso data.
+
+```{r, error = TRUE, eval = FALSE}
+biom <- path(hjelmso_data_path, '2022-11-07_combined_microbiome_file_nt_r.biom') %>%
+  read_biom()
+```
+
+Note, if we try reading in the file as directly exported from CZID, we get an error:
+
+```
+Error in validObject(.Object) : 
+  invalid class “biom” object: type field has unsupported value
+```
+
+This error arises because the 'type' of the data object defined in the JSON-formatted contents of the .biom file isn't valid as per the biom format v1.0 specs, see https://biom-format.org/documentation/format_versions/biom-1.0.html.
+
+We can see this by opening up the file and looking for the type argument towards the beginning; or looking at the top items in the list after reading in the file with a JSON parser.
+
+```{r}
+biom_json <- path(hjelmso_data_path, 
+  '2022-11-07_combined_microbiome_file_nt_r.biom') %>%
+  jsonlite::read_json()
+biom_json %>% head(9)
+```
+We can fix the file by changing the type from 'Table' to something valid.
+It doesn't actually matter what we use:
+
+> While type is a required entry in BIOM tables, the BIOM format itself does not change for different data types (e.g., OTU Table, function table, metabolite table). This information is included to allow tools that use BIOM files to determine the data type, if desired. (Caption for Additional file 5 in @mcdonald2012theb) 
+
+https://academic.oup.com/gigascience/article/1/1/2047-217X-1-7/2656152
+
+Let's use 'Taxon table'.
+The following code chunk should do the trick but is very slow, apparently because the jsonlite package is slow to work with large lists/files.
+
+```{r, eval = F}
+biom_json$type <- 'Taxon table'
+jsonlite::write_json(
+  biom_json,
+  path(hjelmso_data_path, '2022-11-07_combined_microbiome_file_nt_r_fixed.biom')
+)
+```
+
+So I'll instead simply replace the offending text.
+
+```{r}
+biom_text <- path(hjelmso_data_path, '2022-11-07_combined_microbiome_file_nt_r.biom') %>%
+  read_file
+stopifnot( identical(biom_text %>% str_count('"Table"'), 1L) )
+biom_text_fixed <- biom_text %>%
+  str_replace('"Table"', '"Taxon table"')
+write_file(
+  biom_text_fixed,
+  path(hjelmso_data_path, '2022-11-07_combined_microbiome_file_nt_r_fixed.biom')
+)
+```
+
+The above chunk reads in the BIOM file's contents as a single string, checks that '"Table"' appears only once (in the field where it is set as the type), then replaces it with '"Taxon table"'), then writes the string as a new BIOM file.
+We should now be able to load the corrected BIOM file with the biomformat package,
+
+```{r}
+biom <- path(hjelmso_data_path, '2022-11-07_combined_microbiome_file_nt_r_fixed.biom') %>%
+  read_biom() %>%
+  print
+```
+
+Note: For most objects in R, the `print()` and `glimpse()` methods silently return the object as well as printing information about it.
+Adding a `print` or `glimpse` call at the end of a variable-assignment pipe chain is a succinct way to save an object and show some info about it.
+
+### Create a phyloseq object
+
+The abundance (count) matrix, sample metadata table, and taxonomy table can be extracted with three corresponding functions functions from the biomformat package.
+
+We'll tackle these one at a time.
+
+First, the abundance matrix.
+
+```{r}
+abun <- biom %>% biom_data()
+abun %>% class
+abun %>% dim
+```
+
+The abundance matrix is stored as a sparse matrix from the Matrix package.
+That is fine for now, though phyloseq will want a standard (dense) matrix.
+
+Next, the sample metadata.
+
+```{r}
+sam <- biom %>% sample_metadata()
+sam %>% class
+sam %>% head
+sam %>% glimpse
+```
+
+The sample metadata is a standard data frame with rownames giving sample ids, and the taxonomy information is stored as a list.
+Notice how all the variable names are in snake case except for one.
+This is apparently because the CZID BIOM exports its own standard variables as snake case (though shows them otherwise in the online interface), but leaves custom variables unchanged.
+It is convinient to standardize all variable names to snake case; an easy way to do this is with the function `janitor::clean_names()`.
+
+```{r}
+sam <- sam %>%
+  janitor::clean_names() %>%
+  glimpse
+```
+
+Next, the taxonomy table, or what the biomformat package calls the 'observation metadata'.
+
+```{r}
+tax <- biom %>% observation_metadata()
+tax %>% class
+tax %>% head(2)
+```
+
+We can see that here we have a list, with one element per taxon.
+The documentation for `biomformat::observation_metadata` indicates that this function may return a 'data.frame' rather than a list, if it is able to, but does not say under what conditions that will be the case.
+Ultimately we want a data frame (or tibble).
+The following code chunk checks which we have, and if we have a list, tries to turn it into a data frame by spreading out the taxonomy vector of each list element into a table.
+
+```{r}
+tax_tmp <- biom %>% observation_metadata()
+if (is.data.frame(tax_tmp)) {
+  tax <- tax_tmp %>% as_tibble(rownames = '.otu')
+} else {
+  tax <- tax_tmp %>% 
+    enframe(name = 'feature_id') %>% 
+    unnest_wider(value)
+}
+rm(tax_tmp)
+tax %>% glimpse
+```
+
+To facilitate downstream analysis, it is helpful to so some cleanup:
+
+* Replace the taxonomic ranks with the standard NCBI rank names (see an example [NCBI taxonomic record](https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=9606))
+* In cases where the rank is missing/unassigned, replace the empty string with NA
+<!--  -->
+
+```{r}
+rnks <- c('superkingdom', 'kingdom', 'phylum', 'class', 'order', 'family',
+  'genus', 'species')
+colnames(tax)[2:9] <- rnks
+# use NA for missing ranks
+tax <- tax %>%
+  mutate(
+    across(everything(), ~ifelse(. == "", NA_character_, .))
+  )
+tax %>% glimpse
+```
+
+Now let's import all three tables into a single phyloseq object.
+This involves converting each individual table into the corresponding class from the phyloseq package, and then combiningg these into one phyloseq-class object.
+
+```{r}
+ps <- phyloseq(
+  otu_table(abun %>% as.matrix, taxa_are_rows = TRUE),
+  sample_data(sam),
+  tax_table(tax)
+)
+```
+
+Note that we had to first coerce the abundance matrix to a standard dense matrix; we also needed to tell phyloseq that taxa corresponded to rows in the matrix.
+
+# Basic data checks and stats
+
+TODO: explain below
+
+```{r}
+ps <- ps %>%
+  mutate_sample_data(., 
+    sample_sum = sample_sums(.)
+  )
+sam <- ps %>% sample_data %>% as_tibble
+tax <- ps %>% tax_table %>% as_tibble
+```
+
+```{r}
+ps %>% t
+```
+
+```{r}
+ps %>% sample_names %>% head
+ps %>% sample_data %>% glimpse
+```
+
+```{r}
+sam %>%
+  ggplot(aes(sample_sum, fill = collection_location)) +
+  scale_x_log10() +
+  geom_histogram()
+```
+
+```{r}
+taxon_stats <- ps %>%
+  as_tibble %>%
+  mutate(across(superkingdom, fct_explicit_na)) %>%
+  with_groups(c(.otu, superkingdom), summarize, 
+    prev_1 = sum(.abundance >= 1),
+    prev_10 = sum(.abundance >= 10),
+    total = sum(.abundance),
+    proportion = mean(.abundance / sample_sum)
+  )
+```
+
+```{r}
+taxon_stats %>%
+  pivot_longer(-c(.otu, superkingdom)) %>%
+  ggplot(aes(value, fill = superkingdom)) +
+  facet_wrap(~name, scales = 'free') +
+  scale_x_log10() +
+  scale_fill_brewer(type = 'qual') +
+  geom_histogram() 
+```
+
+## Taxonomy
+
+NCBI taxonomy has recently received changes in some prokaryotic phylum names.
+Let's check to see which version of phylum names are being used here, by seeing whether a Bacteroides species' phylum is listed as 'Bacteroidetes' (old name) or 'Bacteroidota' (new name).
+
+```{r}
+tax %>%
+  filter(genus == 'Bacteroides') %>%
+  slice(1)%>%
+  glimpse
+```
+
+If we look at [this taxon in NCBI taxonomy](https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=1263047), we can see that NCBI has adopted the new phylum name 'Bacteroidota'; however, here we see the old phylum name.
+This suggests that CZID is currently using an older version of NCBI prior to the name change.
+
+see
+- https://ncbiinsights.ncbi.nlm.nih.gov/2021/12/10/ncbi-taxonomy-prokaryote-phyla-added/
+- https://www.the-scientist.com/news-opinion/newly-renamed-prokaryote-phyla-cause-uproar-69578
+<!--  -->
+
+
+Check classification percentages
+
+```{r}
+tax %>%
+  pivot_longer(-.otu, names_to = 'rank') %>%
+  with_groups(rank, summarize,
+    features_classified = sum(!is.na(value)),
+    features_total = n()
+  ) %>%
+  mutate(
+    frac_classified = features_classified / features_total,
+    rank = factor(rank, rank_names(ps))
+  ) %>%
+  arrange(rank)
+```
+
+This analysis points to some notable features of the data.
+For example, not every taxonomic feature has a superkingdom.
+Let's take a look at some of those 'species' that don't,
+
+```{r}
+set.seed(42)
+tax %>%
+  filter(is.na(superkingdom)) %>%
+  select(superkingdom, kingdom, genus, species) %>%
+  slice_sample(n=20)
+```
+
+Can see that CZID report reference sequences that are in NT but don't corresopnd to known organisms.
+
+What about 'species' without intermediate ranks?
+
+```{r}
+tax %>%
+  filter(!is.na(superkingdom), is.na(family)) %>%
+  select(superkingdom, kingdom, phylum, family, genus, species) %>%
+  slice_sample(n=20)
+```
+
+Can also see cases where a species does not have an intermediate rank defined, such as family.
+Having NA for intermediate ranks could cause issues, and we might consider replacing these with a new string such as 'Enterobacterales_unclassified'.
+
+How do features break down by superkingdom?
+
+```{r}
+tax %>% 
+  count(superkingdom) %>%
+  mutate(fraction = n / sum(n))
+```
+
+
+# Analysis
+
+
+## Taxonomic composition overview (TODO)
+
+
+## Recreating the Rothman et al 2021 Figure 4 using the Hjelmso data
+
+https://journals.asm.org/doi/full/10.1128/AEM.01448-21
+
+Prep: Note, it is often helpful to filter out some samples and taxa prior to doing some downstream analysis.
+There is a lot to say about how exactly to do this, but here I'll simply demonstrate with an example.
+I'll
+
+* Remove samples with very low read counts, since the low read counts can be a sign of experimental issues with those samples and can skew interprentation of some analyses
+* Subset to just viruses (the Rothman analysis only considers viruses)
+* Remove species not appearing in at least 2 samples and 10 reads, which will speed up calculations and likely make our results more meaningful since these identifications can easily be spurious.
+* Aggregate to the genus level, since I don't currently trust CZID species assignments
+<!--  -->
+
+```{r}
+ps_plot <- ps %>%
+  filter_sample_data(sample_sum > 1e5) %>%
+  filter_tax_table(superkingdom == 'Viruses') %>%
+  filter_taxa2(~ sum(. > 0) > 2 & sum(.) >= 10) %>%
+  tax_glom('genus', NArm = TRUE) %>%
+  print
+```
+
+Now there are only `r ntaxa(ps_plot)` species being considered, compared to `r ntaxa(ps)` in the entire CZID output.
+
+Note that taxa with a missing genus name have been filtered out; this is the phyloseq default but it can have big effects so need to be aware.
+
+Note, the names of the taxonomic features after aggregation are set to the name of the most abundant feature within the genus; they are not automatically set to the genus name.
+That is easy to do manually, provided that you have unique genus names (which is not always the case).
+It can be useful to check if the genus names are unique for plotting by genus later on,
+
+```{r}
+ps_plot %>% tax_table %>% as_tibble %>% pull(genus) %>% anyDuplicated
+```
+
+There are no duplicates, so we can uniquely refer to taxa by genus name.
+
+### Bray-Curtis NMDS ordination (Panel A)
+
+There are many ways to do this; here I'll use the `ordinate()` and `plot_ordination()` helper function from phyloseq to create the NMDS plot using the Bray-Curtis community dissimilarity metric.
+Note, that it is important to manually normalize the abundances to have the same total in each sample (e.g. by normalizing to proportions, as done here), otherwise the different total counts across samples will affect the results.
+
+```{r}
+nmds <- ps_plot %>%
+  transform_sample_counts(~ . / sum(.)) %>%
+  ordinate(method = "NMDS", distance = "bray", trymax = 50)
+p_ord <- plot_ordination(ps_plot, nmds, 
+  color = "collection_location", type = "samples"
+) +
+  labs(color = 'Country')
+p_ord 
+```
+
+### Alpha diversity (Panel B)
+
+We can compute Shannon alpha diversity index for each sample in a variety of ways:
+
+* `phyloseq::estimate_richness()`
+* `vegan::diversity()`
+* Performing the calculation ourselves from the definition
+<!--  -->
+
+```{r}
+shannon_index <- otu_table(ps_plot) %>% 
+  orient_taxa(as = 'cols') %>%
+  vegan::diversity()
+shannon_index %>% head
+```
+
+Note that we needed to reorient the abundance matrix (i.e. OTU table) to have taxa corresponding to columns, as this is what functions in the vegan package expect.
+We can tell that we used the correct orientation because the resulting diversity values are in a named vector where the names correspond to the sample names.
+If we had passed the matrix in the incorrect orientation, then the vector names would be the taxa names.
+
+Let's add the Shannon index to a copy of the sample data,
+
+```{r}
+sam_plot <- ps_plot %>% sample_data %>% as_tibble %>%
+  add_column(shannon_index = shannon_index)
+```
+
+then create the plot,
+
+```{r}
+p_div <- sam_plot %>%
+  ggplot(aes(y = shannon_index, x = collection_location, 
+      color = collection_location)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_quasirandom() +
+  expand_limits(y = 0) +
+  # scale_color_manual(values = colors_countries) +
+  labs(x = 'Country', y = 'Shannon index') +
+  theme(
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+    legend.position = 'none'
+  )
+p_div
+```
+
+Note, I'm plotting the data points over the box plots, since it is useful to see the scatter when we're working with a relatively small number of points like this.
+I therefore turned off the plotting of outliers in the boxplot layer.
+
+Note, I suggest using the exponential of the Shannon index and plotting on a log scale), so that the numbers shown on the axis are in terms of effective number of species.
+
+
+### Relative abundances (Proportions) (Panel C)
+
+In the actual Rothman figure, the abundances for a set of viruses are shown; the particular viruses were picked based on an analysis to determine viruses that vary across treatment plant, using the ANCOM R package.
+I may do that in a future version of this script, but for now I'll just pick the 10 most abundant viruses by average proportion.
+
+First, get a data frame for plotting, with the proportions of all taxa alongside the original read counts,
+
+```{r}
+x <- ps_plot %>%
+  as_tibble %>%
+  with_groups(.sample, mutate,
+    proportion = .abundance / sum(.abundance))
+```
+
+Next, get the top 10 viruses by median proportion. We can do this various ways, e.g.
+
+```{r}
+top_viruses1 <- ps_plot %>% 
+  transform_sample_counts(~ . / sum(.)) %>%
+  orient_taxa(as = 'rows') %>%
+  otu_table %>%
+  apply(1, median) %>%
+  sort(decreasing = TRUE) %>%
+  head(10) %>%
+  names
+```
+
+or
+
+```{r}
+top_viruses2 <- x %>%
+  with_groups(.otu, summarize, across(proportion, median)) %>%
+  slice_max(proportion, n = 10) %>%
+  print %>%
+  pull(.otu)
+identical(top_viruses1, top_viruses2)
+```
+
+```{r, fig.dim = c(10,5)}
+p_prop <- x %>%
+  filter(.otu %in% top_viruses1) %>%
+  mutate(
+    across(genus, fct_reorder, proportion, .fun = median, .desc = TRUE),
+  ) %>%
+  ggplot(aes(x = collection_location, y = proportion,
+      color = collection_location)) +
+  facet_wrap(~genus, nrow = 2, scales = 'free_y') +
+  # scale_y_log10() +
+  geom_boxplot() +
+  geom_jitter() +
+  labs(y = 'Proportion', x = 'Country') +
+  theme(
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+    legend.position = 'none'
+  )
+p_prop
+```
+
+Note, I've ordered the facets as decreasing in median proportion.
+
+### Put the panels together
+
+Putting multiple panels together is often very easy with the patchwork package loaded,
+
+```{r, fig.dim = c(10,10)}
+(p_ord + p_div) / p_prop +
+  plot_annotation(tag_levels = 'A')
+```
+
+This plot could definitely benefit from some extra fiddling, to adjust the spacing and colors etc.
