@@ -230,18 +230,17 @@ rm(tax_tmp)
 tax %>% glimpse
 ```
 
-To break down the structure of the resulting dataframe, the first column
-contains the entire taxonomic structure of one organism in one variable,
-like so:
+To understand this table further, we can first look at the first column.
+This contains the entire taxonomic structure of one organism in one
+variable, like so:
 
-`Bacteria;;Proteobacteria;Alphaproteobacteria;Rhizobiales;Xanthobacteraceae;Azorhizobium;Azorhizobium caulinodan`
+`Bacteria;NA;Proteobacteria;Alphaproteobacteria;Rhizobiales;Xanthobacteraceae;Azorhizobium;Azorhizobium caulinodan`
 
-The following columns
+The following columns then show all the taxonomic information brokendown
+by different taxa levels:
 
 ```{r}
-
-view(as_tibble(tax[1:3, 1]))
-
+glimpse(as_tibble(tax[1:3, 2:9]))
 ```
 
 To facilitate downstream analysis, it is helpful to so some cleanup:
@@ -264,9 +263,9 @@ tax <- tax %>%
 tax %>% glimpse
 ```
 
-Now let's import all three tables into a single phyloseq object. This
+Now let's import all three tables into a single `phyloseq` object. This
 involves converting each individual table into the corresponding class
-from the phyloseq package, and then combining these into one
+from the `phyloseq` package, and then combining these into one
 phyloseq-class object.
 
 ```{r}
@@ -289,7 +288,7 @@ Our `phyloseq` object consists of several tables, one of which is our
 sample metadata:
 
 ```{r}
-sample_data(ps) %>% .[["experim"]]
+ps %>% sample_data() %>% glimpse
 ```
 
 Understanding how many individual species are covered by each sample
@@ -444,8 +443,7 @@ Rothman Figure 4:
 ![](images/paste-58683FF7.png)
 
 Prep: Note, it is often helpful to filter out some samples and taxa
-prior to doing some downstream analysis. There are various ways to go
-about this, but some things one can do:
+prior to doing some downstream analysis.
 
 -   Normally we would remove samples with very low read counts, since
     the low read counts can be a sign of experimental issues with those
@@ -454,52 +452,37 @@ about this, but some things one can do:
     well:
 
 ```{r}
-ps %>% filter_sample_data(!sample_sum > 1e4) %>% sample_data %>% .[["experiment_type"]]
+ps %>% filter_sample_data(!sample_sum > 1e3) %>% sample_data %>% .[["experiment_type"]]
 ```
 
--   Subset to just viruses (the Rothman analysis also only considers
-    viruses)
--   Remove species not appearing in at least 2 samples and 10 reads,
-    which will speed up calculations and likely make our results more
-    meaningful since these identifications can easily be spurious.
--   Aggregate to the genus level, since I don't currently trust CZID
-    species assignments <!--  -->
+-   We also want to subset to just viruses for now (the Rothman analysis
+    also only considers viruses)
+-   Remove species with under 10 reads, which will speed up calculations
+    and likely make our results more meaningful since these
+    identifications can easily be spurious.
 
 ```{r}
-ps_plot <- ps %>%
+ps_subset <- ps %>%
   filter_tax_table(superkingdom == 'Viruses') %>%
   filter_taxa2(~ sum(. > 0) > 2 & sum(.) >= 10) %>%
-  tax_glom('genus', NArm = TRUE) %>%
   print
 ```
 
-Now there are only `r ntaxa(ps_plot)` species being considered, compared
-to `r ntaxa(ps)` in the entire CZID output.
-
-Taxa with a missing genus name have been filtered out; this is the
-phyloseq default but it can have a big effect. In our case we only drop
-13 taxa by dropping taxa with missing genus name.
+Using this subfilter, `ps_subset` only includes are only there are only
+`r ntaxa(ps_subset)` species being considered, compared to `r ntaxa(ps)`
+in the entire CZID output.
 
 ```{r}
-ps_plot_with_na_genus <- ps %>%
-  filter_tax_table(superkingdom == 'Viruses') %>%
-  filter_taxa2(~ sum(. > 0) > 2 & sum(.) >= 10) %>%
-  tax_glom('genus', NArm = FALSE) %>%
-  print
+ntaxa(ps_subset)
 ```
 
-Note, the names of the taxonomic features after aggregation are set to
-the name of the most abundant feature within the genus; they are not
-automatically set to the genus name. That is easy to do manually,
-provided that you have unique genus names (which is not always the
-case). It can be useful to check if the genus names are unique for
-plotting by genus later on: 
+taxa, while `ps` includes
 
 ```{r}
-ps_plot %>% tax_table %>% as_tibble %>% pull(genus) %>% anyDuplicated
+ntaxa(ps) 
 ```
 
-There are no duplicates, so we can uniquely refer to taxa by genus name.
+taxa.
 
 ### Bray-Curtis NMDS ordination (Panel A)
 
@@ -512,14 +495,14 @@ otherwise the different total counts across samples will affect the
 results.
 
 ```{r}
-nmds <- ps_plot %>%
-    speedy_seq::transform_sample_counts(~ . / sum(.)) %>%
+nmds <- ps_subset %>%
+    #speedyseq::transform_sample_counts(~ . / sum(.)) %>%
     ordinate(method = "NMDS", distance = "bray", trymax = 50)
-p_ord <- plot_ordination(ps_plot, nmds,
+ps_subset_ord <- plot_ordination(ps_subset, nmds,
   color = "experiment_type", type = "samples"
 ) +
   labs(color = 'experiment_type')
-p_ord
+ps_subset_ord
 ```
 
 ### Alpha diversity (Panel B)
@@ -532,7 +515,7 @@ variety of ways:
 -   Performing the calculation ourselves from the definition <!--  -->
 
 ```{r}
-shannon_index <- otu_table(ps_plot) %>%
+shannon_index <- otu_table(ps_subset) %>%
   orient_taxa(as = 'cols') %>%
   vegan::diversity()
 shannon_index %>% head
@@ -546,25 +529,37 @@ names correspond to the sample names. If we had passed the matrix in the
 incorrect orientation, then the vector names would be the taxa names.
 
 Let's add the Shannon index and the experiment type to a copy of the
-sample data,
+sample data called `sam_plot`,
 
 ```{r}
-sam_plot <- ps_plot %>% sample_data %>% as_tibble %>%
-  add_column(shannon_index = shannon_index)
+sample_data(ps)
+```
 
-#Will have to make the creation of the experiment_class more robust in the future.
+```{r}
+ps_subset <- ps_subset %>% 
+  speedyseq::mutate_sample_data(
+    shannon_index = shannon_index,
+    experiment_class = experiment_class)
+
+# We will have to make the creation of the experiment_class more robust in the future.
 experiment_class <- c("peg_preciptation", "peg_preciptation", "ceres", 
                          "peg_preciptation", "ceres", "ceres", "amicon", 
                          "peg_preciptation", "amicon", "ceres", "amicon", "amicon")
 
-sam_plot <- sam_plot %>% sample_data %>% as_tibble %>%
-  add_column(experiment_class = experiment_class)
+ps_subset <- ps_subset %>% 
+  speedyseq::mutate_sample_data(
+    experiment_class = experiment_class)
 ```
 
 then create the plot,
 
 ```{r}
-p_div <- sam_plot %>%
+??ps_mutate
+```
+
+```{r}
+p_div <- sam_plot %>% 
+  sample_data %>% 
   ggplot(aes(y = shannon_index, x = experiment_class,
       color = experiment_class)) +
   geom_boxplot(outlier.shape = NA) +
@@ -581,13 +576,22 @@ p_div
 
 Now we can also redo our ordination, labeling by 'experiment_class'.
 
-\
+```{r}
+nmds <- ps_subset %>%
+    #speedyseq::transform_sample_counts(~ . / sum(.)) %>%
+    ordinate(method = "NMDS", distance = "bray", trymax = 50)
+p_ord <- plot_ordination(ps_subset, nmds,
+  color = "experiment_type", type = "samples"
+) +
+  labs(color = 'experiment_type')
+p_ord
+```
 
 ```{r}
-nmds <- sam_plot %>%
+nmds <- sam_plot %>% 
     #transform_sample_counts(~ . / sum(.)) %>%
     ordinate(method = "NMDS", distance = "bray", trymax = 50)
-p_ord <- plot_ordination(ps_plot, nmds,
+p_ord <- plot_ordination(sam_plot, nmds,
   color = "experiment_class", type = "samples"
 ) +
   labs(color = 'experiment_class')
@@ -614,7 +618,7 @@ First, get a data frame for plotting, with the proportions of all taxa
 alongside the original read counts,
 
 ```{r}
-x <- ps_plot %>%
+x <- ps_subset %>%
   as_tibble %>%
   with_groups(.sample, mutate,
     proportion = .abundance / sum(.abundance))
@@ -624,7 +628,7 @@ Next, get the top 10 viruses by median proportion. We can do this
 various ways, e.g.
 
 ```{r}
-top_viruses1 <- ps_plot %>%
+top_viruses1 <- ps_subset %>%
   #transform_sample_counts(~ . / sum(.)) %>%
   orient_taxa(as = 'rows') %>%
   otu_table %>%
