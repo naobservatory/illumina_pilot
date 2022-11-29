@@ -29,44 +29,18 @@ knitr::opts_chunk$set(
 
 # Background
 
-possible outline
+## Introduction
 
--   study intro
-    -   rna viromics study -
-        <https://journals.asm.org/doi/full/10.1128/AEM.01448-21>
-    -   hjelmso et al?
--   sequencing analysis
-    -   czid
--   data input for R
-    -   download output from czid
-        -   two formats
-    -   Load csv into R
-    -   Load biom into R
-    -   cleaning
-        -   tax
-        -   sample data
--   basic data checks and stats
-    -   follow stressed bird microbiomes project
--   analysis
-    -   taxonomic composition
-        -   domains
-            -   domain level barplot
-            -   ratios -\> log scale
-        -   most abundant viruses, viral prevalence vs abundance -\>
-            table
-        -   ratio of viruses / bacteria
-        -   effect of enrichment on viral ratio
-    -   reproduce rothman figure 4
-        -   bray curtis NMDS
-        -   shannon index (viruses only?)
-        -   relative abundance (prop) for 18 viruses
-            -   these viruses were choen based on ANCOM; could use that
-                or a different method e.g. corncob; or just look at the
-                most abundant viruses
-    -   look at effect of enrichment
-        -   aldex? corncob?
+Here I will analyze initial Illumina runs which were submitted in
+October 2022.
 
-# R setup
+We will work with [.biom files](https://biom-format.org/), acquired from
+a CZID analysis of our data (link
+[here](https://czid.org/my_data?currentDisplay=table&currentTab=samples&mapSidebarTab=summary&projectId=4788&showFilters=true&showStats=true&updatedAt=2022-10-07T18%3A28%3A46.867Z&workflow=short-read-mngs),
+only available when given access. Reach out to simon\@securebio.org if
+you do not have access)
+
+We by loading some useful R packages:
 
 ```{r}
 # set of data analysis and viz tools
@@ -90,13 +64,8 @@ library(ggbeeswarm)
 theme_set(theme_cowplot())
 ```
 
-## Introduction
-
-Here I will analyze initial Illumina runs which were submitted in October 2022.
-
-We will work with [.biom files](https://biom-format.org/), acquired froma CZID analysis of our data.
-
-Start by loading some useful R packages,
+We then set the folder containing the `.biom` file as our `here`
+directory.
 
 ```{r}
 illumina_data_path <- here("data")
@@ -105,7 +74,7 @@ dir_ls(illumina_data_path) %>% path_file
 
 # Data import
 
-## From a BIOM file (ombined Microbiome File.biom)
+We now import the BIOM file (Combined Microbiome File.biom)
 
 ```{r, error = TRUE, eval = FALSE}
 biom <- path(illumina_data_path, '2022_11_14_Illumina_pilot_nt_r.biom') %>%
@@ -119,7 +88,7 @@ get an error:
       invalid class “biom” object: type field has unsupported value
 
 This error arises because the 'type' of the data object defined in the
-JSON-formatted contents of the .biom file isn't valid as per the biom
+JSON-formatted contents of the `.biom` file isn't valid as per the BIOM
 format v1.0 specs, see
 <https://biom-format.org/documentation/format_versions/biom-1.0.html>.
 
@@ -145,7 +114,7 @@ valid. It doesn't actually matter what we use:
 
 <https://academic.oup.com/gigascience/article/1/1/2047-217X-1-7/2656152>
 
-Let's use 'Taxon table'.
+For now, let's use 'Taxon table'.
 
 ```{r}
 biom_text <- path(illumina_data_path, '2022_11_14_Illumina_pilot_nt_r.biom') %>%
@@ -206,14 +175,14 @@ sam %>% head
 sam %>% glimpse
 ```
 
-#### Formatting column names into snakemake
+#### Formatting column names into snakecase
 
 The sample metadata is a standard data frame with rownames giving sample
 ids, and the taxonomy information is stored as a list. Notice how all
 the variable names are in snake case except for one. This is apparently
 because the CZID BIOM exports its own standard variables as snake case
 (though shows them otherwise in the online interface), but leaves custom
-variables unchanged. It is convinient to standardize all variable names
+variables unchanged. It is convenient to standardize all variable names
 to snake case; an easy way to do this is with the function
 `janitor::clean_names()`.
 
@@ -236,6 +205,10 @@ tax %>% head(2)
 tax %>% glimpse()
 ```
 
+```{r}
+?biomformat::observation_metadata
+```
+
 We can see that here we have a list, with one element per taxon. The
 documentation for `biomformat::observation_metadata` indicates that this
 function may return a 'data.frame' rather than a list, if it is able to,
@@ -255,6 +228,20 @@ if (is.data.frame(tax_tmp)) {
 }
 rm(tax_tmp)
 tax %>% glimpse
+```
+
+To break down the structure of the resulting dataframe, the first column
+contains the entire taxonomic structure of one organism in one variable,
+like so:
+
+`Bacteria;;Proteobacteria;Alphaproteobacteria;Rhizobiales;Xanthobacteraceae;Azorhizobium;Azorhizobium caulinodan`
+
+The following columns
+
+```{r}
+
+view(as_tibble(tax[1:3, 1]))
+
 ```
 
 To facilitate downstream analysis, it is helpful to so some cleanup:
@@ -506,7 +493,7 @@ the name of the most abundant feature within the genus; they are not
 automatically set to the genus name. That is easy to do manually,
 provided that you have unique genus names (which is not always the
 case). It can be useful to check if the genus names are unique for
-plotting by genus later on:
+plotting by genus later on: 
 
 ```{r}
 ps_plot %>% tax_table %>% as_tibble %>% pull(genus) %>% anyDuplicated
@@ -526,17 +513,13 @@ results.
 
 ```{r}
 nmds <- ps_plot %>%
-  transform_sample_counts(~ . / sum(.)) %>%
-  ordinate(method = "NMDS", distance = "bray", trymax = 50)
+    speedy_seq::transform_sample_counts(~ . / sum(.)) %>%
+    ordinate(method = "NMDS", distance = "bray", trymax = 50)
 p_ord <- plot_ordination(ps_plot, nmds,
-  color = "collection_location", type = "samples"
+  color = "experiment_type", type = "samples"
 ) +
-  labs(color = 'Country')
+  labs(color = 'experiment_type')
 p_ord
-```
-
-```{r}
-?ordinate
 ```
 
 ### Alpha diversity (Panel B)
@@ -562,24 +545,33 @@ because the resulting diversity values are in a named vector where the
 names correspond to the sample names. If we had passed the matrix in the
 incorrect orientation, then the vector names would be the taxa names.
 
-Let's add the Shannon index to a copy of the sample data,
+Let's add the Shannon index and the experiment type to a copy of the
+sample data,
 
 ```{r}
 sam_plot <- ps_plot %>% sample_data %>% as_tibble %>%
   add_column(shannon_index = shannon_index)
+
+#Will have to make the creation of the experiment_class more robust in the future.
+experiment_class <- c("peg_preciptation", "peg_preciptation", "ceres", 
+                         "peg_preciptation", "ceres", "ceres", "amicon", 
+                         "peg_preciptation", "amicon", "ceres", "amicon", "amicon")
+
+sam_plot <- sam_plot %>% sample_data %>% as_tibble %>%
+  add_column(experiment_class = experiment_class)
 ```
 
 then create the plot,
 
 ```{r}
 p_div <- sam_plot %>%
-  ggplot(aes(y = shannon_index, x = collection_location,
-      color = collection_location)) +
+  ggplot(aes(y = shannon_index, x = experiment_class,
+      color = experiment_class)) +
   geom_boxplot(outlier.shape = NA) +
   geom_quasirandom() +
   expand_limits(y = 0) +
   # scale_color_manual(values = colors_countries) +
-  labs(x = 'Country', y = 'Shannon index') +
+  labs(x = 'experiment_class', y = 'Shannon index') +
   theme(
     axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
     legend.position = 'none'
@@ -587,10 +579,24 @@ p_div <- sam_plot %>%
 p_div
 ```
 
+Now we can also redo our ordination, labeling by 'experiment_class'.
+
+\
+
+```{r}
+nmds <- sam_plot %>%
+    #transform_sample_counts(~ . / sum(.)) %>%
+    ordinate(method = "NMDS", distance = "bray", trymax = 50)
+p_ord <- plot_ordination(ps_plot, nmds,
+  color = "experiment_class", type = "samples"
+) +
+  labs(color = 'experiment_class')
+p_ord
+```
+
 Note, I'm plotting the data points over the box plots, since it is
 useful to see the scatter when we're working with a relatively small
-number of points like this. I therefore turned off the plotting of
-outliers in the boxplot layer.
+number of points like this.
 
 Note, I suggest using the exponential of the Shannon index and plotting
 on a log scale), so that the numbers shown on the axis are in terms of
@@ -619,7 +625,7 @@ various ways, e.g.
 
 ```{r}
 top_viruses1 <- ps_plot %>%
-  transform_sample_counts(~ . / sum(.)) %>%
+  #transform_sample_counts(~ . / sum(.)) %>%
   orient_taxa(as = 'rows') %>%
   otu_table %>%
   apply(1, median) %>%
@@ -641,7 +647,7 @@ identical(top_viruses1, top_viruses2)
 
 ```{r, fig.dim = c(10,5)}
 p_prop <- x %>%
-  filter(.otu %in% top_viruses1) %>%
+  filter(.otu %in% top_viruses2) %>%
   mutate(
     across(genus, fct_reorder, proportion, .fun = median, .desc = TRUE),
   ) %>%

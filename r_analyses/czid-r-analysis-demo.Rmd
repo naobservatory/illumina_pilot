@@ -14,8 +14,10 @@ output:
     self_contained: false
     dev: svg
     toc: true
+editor_options: 
+  markdown: 
+    wrap: sentence
 ---
-
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
@@ -26,41 +28,41 @@ knitr::opts_chunk$set(
   dpi = 300
 )
 ```
- 
+
 # Background
 
 possible outline
 
-- study intro
-  - rna viromics study - https://journals.asm.org/doi/full/10.1128/AEM.01448-21
-  - or hjelmso et al
-- sequencing analysis
-  - czid
-- data input for R
-  - download output from czid
-    - two formats
-  - Load csv into R
-  - Load biom into R
-  - cleaning
-    - tax
-    - sample data
-- basic data checks and stats
-  - follow stressed bird microbiomes project
-- analysis
-  - taxonomic composition
-    - domains
-      - domain level barplot
-      - ratios -> log scale
-    - most abundant viruses, viral prevalence vs abundance -> table
-    - ratio of viruses / bacteria
-    - effect of enrichment on viral ratio
-  - reproduce rothman figure 4
-    - bray curtis NMDS
-    - shannon index (viruses only?)
-    - relative abundance (prop) for 18 viruses
-      - these viruses were choen based on ANCOM; could use that or a different method e.g. corncob; or just look at the most abundant viruses
-  - look at effect of enrichment
-    - aldex? corncob?
+-   study intro
+    -   rna viromics study - <https://journals.asm.org/doi/full/10.1128/AEM.01448-21>
+    -   or hjelmso et al
+-   sequencing analysis
+    -   czid
+-   data input for R
+    -   download output from czid
+        -   two formats
+    -   Load csv into R
+    -   Load biom into R
+    -   cleaning
+        -   tax
+        -   sample data
+-   basic data checks and stats
+    -   follow stressed bird microbiomes project
+-   analysis
+    -   taxonomic composition
+        -   domains
+            -   domain level barplot
+            -   ratios -\> log scale
+        -   most abundant viruses, viral prevalence vs abundance -\> table
+        -   ratio of viruses / bacteria
+        -   effect of enrichment on viral ratio
+    -   reproduce rothman figure 4
+        -   bray curtis NMDS
+        -   shannon index (viruses only?)
+        -   relative abundance (prop) for 18 viruses
+            -   these viruses were choen based on ANCOM; could use that or a different method e.g. corncob; or just look at the most abundant viruses
+    -   look at effect of enrichment
+        -   aldex? corncob?
 
 # R setup
 
@@ -97,14 +99,13 @@ hjelmso_data_path <- here("_data/hjelmso2019meta/czid")
 dir_ls(hjelmso_data_path) %>% path_file
 ```
 
-
 # Data import
 
 ## From a BIOM file (@hjelmso2019meta data)
 
 Note, this output format is listed as being in Beta.
 
-https://biom-format.org/
+<https://biom-format.org/>
 
 Note, CZID export of a BIOM file with all Rothman samples is currently failing for me for an unknown reason.
 Therefore, I will demonstrate with a BIOM file of the Hjelmso data.
@@ -116,12 +117,10 @@ biom <- path(hjelmso_data_path, '2022-11-07_combined_microbiome_file_nt_r.biom')
 
 Note, if we try reading in the file as directly exported from CZID, we get an error:
 
-```
-Error in validObject(.Object) : 
-  invalid class “biom” object: type field has unsupported value
-```
+    Error in validObject(.Object) : 
+      invalid class “biom” object: type field has unsupported value
 
-This error arises because the 'type' of the data object defined in the JSON-formatted contents of the .biom file isn't valid as per the biom format v1.0 specs, see https://biom-format.org/documentation/format_versions/biom-1.0.html.
+This error arises because the 'type' of the data object defined in the JSON-formatted contents of the .biom file isn't valid as per the biom format v1.0 specs, see <https://biom-format.org/documentation/format_versions/biom-1.0.html>.
 
 We can see this by opening up the file and looking for the type argument towards the beginning; or looking at the top items in the list after reading in the file with a JSON parser.
 
@@ -131,12 +130,15 @@ biom_json <- path(hjelmso_data_path,
   jsonlite::read_json()
 biom_json %>% head(9)
 ```
+
 We can fix the file by changing the type from 'Table' to something valid.
 It doesn't actually matter what we use:
 
-> While type is a required entry in BIOM tables, the BIOM format itself does not change for different data types (e.g., OTU Table, function table, metabolite table). This information is included to allow tools that use BIOM files to determine the data type, if desired. (Caption for Additional file 5 in @mcdonald2012theb) 
+> While type is a required entry in BIOM tables, the BIOM format itself does not change for different data types (e.g., OTU Table, function table, metabolite table).
+> This information is included to allow tools that use BIOM files to determine the data type, if desired.
+> (Caption for Additional file 5 in @mcdonald2012theb)
 
-https://academic.oup.com/gigascience/article/1/1/2047-217X-1-7/2656152
+<https://academic.oup.com/gigascience/article/1/1/2047-217X-1-7/2656152>
 
 Let's use 'Taxon table'.
 The following code chunk should do the trick but is very slow, apparently because the jsonlite package is slow to work with large lists/files.
@@ -240,9 +242,8 @@ tax %>% glimpse
 
 To facilitate downstream analysis, it is helpful to so some cleanup:
 
-* Replace the taxonomic ranks with the standard NCBI rank names (see an example [NCBI taxonomic record](https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=9606))
-* In cases where the rank is missing/unassigned, replace the empty string with NA
-<!--  -->
+-   Replace the taxonomic ranks with the standard NCBI rank names (see an example [NCBI taxonomic record](https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=9606))
+-   In cases where the rank is missing/unassigned, replace the empty string with NA <!--  -->
 
 ```{r}
 rnks <- c('superkingdom', 'kingdom', 'phylum', 'class', 'order', 'family',
@@ -335,11 +336,7 @@ tax %>%
 If we look at [this taxon in NCBI taxonomy](https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=1263047), we can see that NCBI has adopted the new phylum name 'Bacteroidota'; however, here we see the old phylum name.
 This suggests that CZID is currently using an older version of NCBI prior to the name change.
 
-see
-- https://ncbiinsights.ncbi.nlm.nih.gov/2021/12/10/ncbi-taxonomy-prokaryote-phyla-added/
-- https://www.the-scientist.com/news-opinion/newly-renamed-prokaryote-phyla-cause-uproar-69578
-<!--  -->
-
+see - <https://ncbiinsights.ncbi.nlm.nih.gov/2021/12/10/ncbi-taxonomy-prokaryote-phyla-added/> - <https://www.the-scientist.com/news-opinion/newly-renamed-prokaryote-phyla-cause-uproar-69578> <!--  -->
 
 Check classification percentages
 
@@ -391,26 +388,22 @@ tax %>%
   mutate(fraction = n / sum(n))
 ```
 
-
 # Analysis
-
 
 ## Taxonomic composition overview (TODO)
 
-
 ## Recreating the Rothman et al 2021 Figure 4 using the Hjelmso data
 
-https://journals.asm.org/doi/full/10.1128/AEM.01448-21
+<https://journals.asm.org/doi/full/10.1128/AEM.01448-21>
 
 Prep: Note, it is often helpful to filter out some samples and taxa prior to doing some downstream analysis.
 There is a lot to say about how exactly to do this, but here I'll simply demonstrate with an example.
 I'll
 
-* Remove samples with very low read counts, since the low read counts can be a sign of experimental issues with those samples and can skew interprentation of some analyses
-* Subset to just viruses (the Rothman analysis only considers viruses)
-* Remove species not appearing in at least 2 samples and 10 reads, which will speed up calculations and likely make our results more meaningful since these identifications can easily be spurious.
-* Aggregate to the genus level, since I don't currently trust CZID species assignments
-<!--  -->
+-   Remove samples with very low read counts, since the low read counts can be a sign of experimental issues with those samples and can skew interprentation of some analyses
+-   Subset to just viruses (the Rothman analysis only considers viruses)
+-   Remove species not appearing in at least 2 samples and 10 reads, which will speed up calculations and likely make our results more meaningful since these identifications can easily be spurious.
+-   Aggregate to the genus level, since I don't currently trust CZID species assignments <!--  -->
 
 ```{r}
 ps_plot <- ps %>%
@@ -455,10 +448,9 @@ p_ord
 
 We can compute Shannon alpha diversity index for each sample in a variety of ways:
 
-* `phyloseq::estimate_richness()`
-* `vegan::diversity()`
-* Performing the calculation ourselves from the definition
-<!--  -->
+-   `phyloseq::estimate_richness()`
+-   `vegan::diversity()`
+-   Performing the calculation ourselves from the definition <!--  -->
 
 ```{r}
 shannon_index <- otu_table(ps_plot) %>% 
@@ -501,7 +493,6 @@ I therefore turned off the plotting of outliers in the boxplot layer.
 
 Note, I suggest using the exponential of the Shannon index and plotting on a log scale), so that the numbers shown on the axis are in terms of effective number of species.
 
-
 ### Relative abundances (Proportions) (Panel C)
 
 In the actual Rothman figure, the abundances for a set of viruses are shown; the particular viruses were picked based on an analysis to determine viruses that vary across treatment plant, using the ANCOM R package.
@@ -516,7 +507,8 @@ x <- ps_plot %>%
     proportion = .abundance / sum(.abundance))
 ```
 
-Next, get the top 10 viruses by median proportion. We can do this various ways, e.g.
+Next, get the top 10 viruses by median proportion.
+We can do this various ways, e.g.
 
 ```{r}
 top_viruses1 <- ps_plot %>% 
