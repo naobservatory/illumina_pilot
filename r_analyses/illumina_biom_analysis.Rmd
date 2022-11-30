@@ -1,5 +1,5 @@
 ---
-title: "tbd_rmarkdown"
+title: "Illumina .biom analysis"
 author:
   - name: Simon Grimm
     url: {}
@@ -29,8 +29,6 @@ knitr::opts_chunk$set(
 
 # Background
 
-## Introduction
-
 Here I will analyze initial Illumina runs which were submitted in
 October 2022.
 
@@ -40,7 +38,11 @@ a CZID analysis of our data (link
 only available when given access. Reach out to simon\@securebio.org if
 you do not have access)
 
-We by loading some useful R packages:
+# Introduction
+
+### R packages
+
+We start by loading all required R packages:
 
 ```{r}
 # set of data analysis and viz tools
@@ -72,7 +74,7 @@ illumina_data_path <- here("data")
 dir_ls(illumina_data_path) %>% path_file
 ```
 
-# Data import
+### Data import
 
 We now import the BIOM file (Combined Microbiome File.biom)
 
@@ -146,15 +148,15 @@ Adding a `print` or `glimpse` call at the end of a variable-assignment
 pipe chain is a succinct way to save an object and show some info about
 it.
 
-### Create a phyloseq object
+### Creating a phyloseq object
 
 The abundance (count) matrix, sample metadata table, and taxonomy table
 can be extracted with three corresponding functions functions from the
 biomformat package.
 
-We'll tackle these one at a time.
+We'll tackle these one at a time. First, the abundance matrix.
 
-First, the abundance matrix.
+#### Abundance matrix
 
 ```{r}
 abun <- biom %>% biom_data()
@@ -164,9 +166,9 @@ abun %>% dim
 
 The abundance matrix is stored as a sparse matrix from the Matrix
 package. That is fine for now, though phyloseq will want a standard
-(dense) matrix.
+(dense) matrix. Next we will extract the sample metadata.
 
-Next, the sample metadata.
+#### Sample Metadata
 
 ```{r}
 sam <- biom %>% sample_metadata()
@@ -175,15 +177,13 @@ sam %>% head
 sam %>% glimpse
 ```
 
-#### Formatting column names into snakecase
-
 The sample metadata is a standard data frame with rownames giving sample
 ids, and the taxonomy information is stored as a list. Notice how all
 the variable names are in snake case except for one. This is apparently
 because the CZID BIOM exports its own standard variables as snake case
 (though shows them otherwise in the online interface), but leaves custom
-variables unchanged. It is convenient to standardize all variable names
-to snake case; an easy way to do this is with the function
+variables unchanged. **It is convenient to standardize all variable
+names to snake case**; an easy way to do this is with the function
 `janitor::clean_names()`.
 
 ```{r}
@@ -194,6 +194,8 @@ sam <- sam %>%
 
 Next, the taxonomy table, or what the biomformat package calls the
 'observation metadata'.
+
+#### Taxonomy table
 
 Note, when using glimpse we observe that taxonomy level 2 (under
 'Bacteria') is blank. Might be worth investigating why that is.
@@ -236,8 +238,8 @@ variable, like so:
 
 `Bacteria;NA;Proteobacteria;Alphaproteobacteria;Rhizobiales;Xanthobacteraceae;Azorhizobium;Azorhizobium caulinodan`
 
-The following columns then show all the taxonomic information brokendown
-by different taxa levels:
+The following columns then show all the taxonomic information broken
+down by different taxa levels:
 
 ```{r}
 glimpse(as_tibble(tax[1:3, 2:9]))
@@ -305,14 +307,25 @@ sam <- ps %>% sample_data %>% as_tibble
 tax <- ps %>% tax_table %>% as_tibble
 ```
 
-```{r}
-ps %>% t
+It will also be interesting to compare groups of samples by their
+experimental protocols. For this, we can add a column to our sample
+metadata, consisting of experimental classes:
 
+!!! Make experiment class assignments robust.
+
+```{r}
+experiment_class <- c("peg_preciptation", "peg_preciptation", "ceres", 
+                         "peg_preciptation", "ceres", "ceres", "amicon", 
+                         "peg_preciptation", "amicon", "ceres", "amicon", "amicon")
+
+ps <- ps %>% 
+  mutate_sample_data(
+    experiment_class = experiment_class)
 ```
 
 ```{r}
-ps %>% sample_names %>% head
-ps %>% sample_data %>% glimpse
+ps %>% t
+
 ```
 
 As visible in the crude table below, there are multiple samples with
@@ -322,14 +335,21 @@ controls (A-C, CU-C, PC) and the CERES filtered sample.
 
 ```{r}
 sam %>%
+  ggplot(aes(sample_sum, fill = experiment_class)) +
+  scale_x_log10() +
+  geom_histogram()
+
+sam %>%
   ggplot(aes(sample_sum, fill = experiment_type)) +
   scale_x_log10() +
   geom_histogram()
 ```
 
 ```{r}
-ps %>% sample_names() %>% glimpse
+?fct_explicit_na
 ```
+
+**QUESTION:** Can we walk through the code below?
 
 ```{r}
 taxon_stats <- ps %>%
@@ -342,8 +362,6 @@ taxon_stats <- ps %>%
     proportion = mean(.abundance / sample_sum)
   )
 ```
-
-I do not fully understand the graph below.
 
 ```{r}
 taxon_stats %>%
@@ -380,7 +398,8 @@ see -
 <https://www.the-scientist.com/news-opinion/newly-renamed-prokaryote-phyla-cause-uproar-69578>
 <!--  -->
 
-Check classification percentages
+We can now also look at the fraction of each taxa level which is
+classified. In total there are 12447 classified species:
 
 ```{r}
 tax %>%
@@ -433,7 +452,9 @@ tax %>%
 
 # Analysis
 
-## Taxonomic composition overview (TODO)
+## Taxonomic composition overview
+
+**QUESTION:** What would be most useful here?
 
 ## Recreating the Rothman et al 2021 Figure 4 using Illumina data
 
@@ -457,9 +478,13 @@ ps %>% filter_sample_data(!sample_sum > 1e3) %>% sample_data %>% .[["experiment_
 
 -   We also want to subset to just viruses for now (the Rothman analysis
     also only considers viruses)
--   Remove species with under 10 reads, which will speed up calculations
-    and likely make our results more meaningful since these
-    identifications can easily be spurious.
+-   Remove species with under 10 reads, and those occurring in fewer
+    than three samples, which will speed up calculations and likely make
+    our results more meaningful since these identifications can easily
+    be spurious.
+
+!!! Check how the last point interacts with the abundance table at the
+end of this document
 
 ```{r}
 ps_subset <- ps %>%
@@ -542,13 +567,7 @@ ps_subset <- ps_subset %>%
     experiment_class = experiment_class)
 
 # We will have to make the creation of the experiment_class more robust in the future.
-experiment_class <- c("peg_preciptation", "peg_preciptation", "ceres", 
-                         "peg_preciptation", "ceres", "ceres", "amicon", 
-                         "peg_preciptation", "amicon", "ceres", "amicon", "amicon")
 
-ps_subset <- ps_subset %>% 
-  speedyseq::mutate_sample_data(
-    experiment_class = experiment_class)
 ```
 
 then create the plot,
@@ -558,7 +577,7 @@ then create the plot,
 ```
 
 ```{r}
-p_div <- sam_plot %>% 
+p_div <- ps_subset %>% 
   sample_data %>% 
   ggplot(aes(y = shannon_index, x = experiment_class,
       color = experiment_class)) +
@@ -574,30 +593,6 @@ p_div <- sam_plot %>%
 p_div
 ```
 
-Now we can also redo our ordination, labeling by 'experiment_class'.
-
-```{r}
-nmds <- ps_subset %>%
-    #speedyseq::transform_sample_counts(~ . / sum(.)) %>%
-    ordinate(method = "NMDS", distance = "bray", trymax = 50)
-p_ord <- plot_ordination(ps_subset, nmds,
-  color = "experiment_type", type = "samples"
-) +
-  labs(color = 'experiment_type')
-p_ord
-```
-
-```{r}
-nmds <- sam_plot %>% 
-    #transform_sample_counts(~ . / sum(.)) %>%
-    ordinate(method = "NMDS", distance = "bray", trymax = 50)
-p_ord <- plot_ordination(sam_plot, nmds,
-  color = "experiment_class", type = "samples"
-) +
-  labs(color = 'experiment_class')
-p_ord
-```
-
 Note, I'm plotting the data points over the box plots, since it is
 useful to see the scatter when we're working with a relatively small
 number of points like this.
@@ -605,6 +600,24 @@ number of points like this.
 Note, I suggest using the exponential of the Shannon index and plotting
 on a log scale), so that the numbers shown on the axis are in terms of
 effective number of species.
+
+Now we can also redo our ordination, labeling by 'experiment_class'.
+
+!!!
+
+Results here seem quite jumpy, plausibly due to a lack of normalization
+and samples with very low read counts (3 controls plus filtered Ceres)
+
+```{r}
+nmds <- ps_subset %>%
+    #speedyseq::transform_sample_counts(~ . / sum(.)) %>%
+    ordinate(method = "NMDS", distance = "bray", trymax = 50)
+p_ord <- plot_ordination(ps_subset, nmds,
+  color = "experiment_class", type = "samples"
+) +
+  labs(color = 'experiment_class')
+p_ord
+```
 
 ### Relative abundances (Proportions) (Panel C)
 
@@ -629,24 +642,44 @@ various ways, e.g.
 
 ```{r}
 top_viruses1 <- ps_subset %>%
-  #transform_sample_counts(~ . / sum(.)) %>%
+  speedyseq::transform_sample_counts(~ . / sum(.)) %>%
   orient_taxa(as = 'rows') %>%
   otu_table %>%
   apply(1, median) %>%
   sort(decreasing = TRUE) %>%
   head(10) %>%
   names
+
+top_viruses1
 ```
 
-or
+The above doesn't work due to the line
+`speedyseq::transform_sample_counts`. Dropping it makes the code work
+but returns a list of viruses that look spurious.
 
 ```{r}
-top_viruses2 <- x %>%
+top_viruses2 <- ps_subset %>%
+  #speedyseq::transform_sample_counts(~ . / sum(.)) %>%
+  orient_taxa(as = 'rows') %>%
+  otu_table %>%
+  apply(1, median) %>%
+  sort(decreasing = TRUE) %>%
+  head(10) %>%
+  names
+
+top_viruses2
+```
+
+We can also try a third alternative, which isn't working in its current
+form.
+
+```{r}
+top_viruses3 <- x %>%
   with_groups(.otu, summarize, across(proportion, median)) %>%
   slice_max(proportion, n = 10) %>%
   print %>%
   pull(.otu)
-identical(top_viruses1, top_viruses2)
+identical(top_viruses2, top_viruses3)
 ```
 
 ```{r, fig.dim = c(10,5)}
@@ -655,17 +688,18 @@ p_prop <- x %>%
   mutate(
     across(genus, fct_reorder, proportion, .fun = median, .desc = TRUE),
   ) %>%
-  ggplot(aes(x = collection_location, y = proportion,
-      color = collection_location)) +
+  ggplot(aes(x = experiment_type, y = proportion,
+      color = experiment_class)) +
   facet_wrap(~genus, nrow = 2, scales = 'free_y') +
-  # scale_y_log10() +
+  scale_y_log10() +
   geom_boxplot() +
   geom_jitter() +
-  labs(y = 'Proportion', x = 'Country') +
+  labs(y = 'Proportion', x = 'experiment_type') +
   theme(
     axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
     legend.position = 'none'
   )
+
 p_prop
 ```
 
