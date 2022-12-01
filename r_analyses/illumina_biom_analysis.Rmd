@@ -458,7 +458,87 @@ tax %>%
 
 **QUESTION:** What would be most useful here?
 
--   Superkingdom relative abundances (ratios and proportions)
+Look at the methods used in this paper by Hjelmso et al to find out
+which analyses they have done:
+<https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0170199#sec002>
+
+### **Relative abundances of superkingdoms**
+
+What do I want to compare here? At the end of the day I want to
+agglomerate taxa data on the superkingdom level, for which I can use
+`glom`.
+
+I could then plot samples, displaying their relative shares of Viruses,
+Bacteria, Archea, and Eukaryotes.
+
+First, calculate abundance sums for each sample
+
+```{r}
+abun_subset_ps <- ps %>%
+  filter_sample_data(sample_sum > 1e3) %>% 
+  filter_taxa2(~ sum(. > 0) > 2 & sum(.) >= 10) 
+
+total_sums <- abun_subset_ps %>% 
+  sample_sums(.)
+
+bacteria_sums <- abun_subset_ps %>% 
+  filter_tax_table(superkingdom == 'Bacteria') %>%
+  sample_sums(.)
+
+virus_sums <- abun_subset_ps %>% 
+  filter_tax_table(superkingdom == 'Viruses') %>%
+  sample_sums(.)
+
+archaea_sums <- abun_subset_ps %>% 
+  filter_tax_table(superkingdom == 'Archaea') %>%
+  sample_sums(.)
+
+eukaryota_sums <- abun_subset_ps %>% 
+  filter_tax_table(superkingdom == 'Eukaryota') %>%
+  sample_sums(.)
+```
+
+```{r}
+
+rownames <- c("total_sums", "bacteria_sums", "virus_sums", "archaea_sums", "eukaryota_sums")
+
+superkingdom_absolute_abun <- bind_rows(total_sums, 
+                                        bacteria_sums, 
+                                        virus_sums, 
+                                        archaea_sums, 
+                                        eukaryota_sums, 
+                                        .id = "sum_type") %>% 
+  mutate(sum_type = rownames)
+
+superkingdom_absolute_abun
+```
+
+**QUESTION:** How to create [this
+plot](https://r4ds.had.co.nz/data-visualisation.html#creating-a-ggplot:~:text=position%20%3D%20%22fill%22%20works%20like%20stacking%2C%20but%20makes%20each%20set%20of%20stacked%20bars%20the%20same%20height.%20This%20makes%20it%20easier%20to%20compare%20proportions%20across%20groups.)
+using the following tibble:
+
+```{r}
+superkingdom_plot <- superkingdom_absolute_abun %>% 
+  pivot_longer(-sum_type, names_to = "sample_name", values_to = "count")
+
+superkingdom_plot
+
+ggplot(data = superkingdom_plot) +
+  geom_bar(mapping = aes(x=sample_name, fill=count), position = "fill")
+          
+```
+
+Pseudocode:
+
+    abun_subset_ps <- ps %>%
+      filter_sample_data(sample_sum > 1e3) %>% 
+      filter_taxa2(~ sum(. > 0) > 2 & sum(.) >= 10) 
+      
+    abun_subset_ps %>%
+      filter_tax_table(superkingdom == 'Bacteria') %>%
+      
+
+### Superkingdom relative abundances (ratios and proportions)
 
 -   \% of assigned reads (and host-filtered reads)
 
@@ -667,7 +747,7 @@ for(i in 1:1000) {
 plot(shannon[,1],shannon[,2],xlab="Species Richness",ylab="Effective Numbers of Species",main="Shannon (Effective)")
 ```
 
-###  Code
+####  Code
 
 Going back to our data, we can calculate alpha diversity in a variety of
 ways:
@@ -690,18 +770,16 @@ because the resulting diversity values are in a named vector where the
 names correspond to the sample names. If we had passed the matrix in the
 incorrect orientation, then the vector names would be the taxa names.
 
-Now we can add add the Shannon index to a copy of the sample data called
-`ps_subset`
+Now we can add add the Shannon index to our sample data.
 
 ```{r}
 ps_subset <- ps_subset %>% 
   speedyseq::mutate_sample_data(
-    shannon_index = shannon_index,
-    experiment_class = experiment_class)
+    shannon_index = shannon_index)
 ```
 
 then create the plot, using the effective number of species, by
-exponentiation of the Shannon index
+exponentiating the Shannon index
 
 ```{r}
 p_div <- ps_subset %>% 
@@ -711,7 +789,7 @@ p_div <- ps_subset %>%
   geom_boxplot(outlier.shape = NA) +
   geom_quasirandom() +
   expand_limits(y = c(0,160)) +
-  labs(x = 'Experiment Class', y = 'Effective Number of Species') +
+  labs(x = 'Experiment Class', y = 'Effective Number of Viral Species') +
   theme(
     axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
     legend.position = 'none'
@@ -719,8 +797,13 @@ p_div <- ps_subset %>%
 p_div
 ```
 
+**QUESTION:** How to create the same plot as above, but plotting the
+absolute number of species present in each sample?
+
 ```{r}
-?geom_poi
+ps_subset %>% 
+  as_tibble %>% 
+  with_groups(.sample, ntaxa)
 ```
 
 Note, I'm plotting the data points over the box plots, since it is
