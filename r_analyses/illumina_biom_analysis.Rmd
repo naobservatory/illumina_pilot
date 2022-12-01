@@ -481,10 +481,14 @@ tax %>%
 
 ## Recreating the Rothman et al 2021 Figure 4 using Illumina data
 
-Rothman Figure 4:
-([source](https://journals.asm.org/doi/full/10.1128/AEM.01448-21))
+Rothman Figure 4: ([source of
+paper](https://journals.asm.org/doi/full/10.1128/AEM.01448-21); [source
+of R
+code](https://github.com/jasonarothman/wastewater_viromics_sarscov2/tree/main/github_R_scripts))
 
 ![](images/paste-58683FF7.png)
+
+### Filtering our samples
 
 Prep: Note, it is often helpful to filter out some samples and taxa
 prior to doing some downstream analysis.
@@ -499,10 +503,10 @@ ps %>% filter_sample_data(sample_sum < 1e3) %>% sample_data %>% .[["experiment_t
 
 -   We also want to subset to just viruses for now (the Rothman analysis
     also only considers viruses)
--   Remove species with under 10 reads, and those occurring in fewer
-    than 2 samples, which will speed up calculations and likely make our
-    results more meaningful since these identifications can easily be
-    spurious.
+-   Furthermore we'd like to remove species with under 10 reads, and
+    those occurring in fewer than 2 samples, which will speed up
+    calculations and likely make our results more meaningful since these
+    identifications can easily be spurious.
     -   Note that this would lead to the inclusion of samples that have
         zero (!) reads, as some of the control samples only have 2 reads
         per species.
@@ -530,17 +534,25 @@ taxa.
 
 ### Bray-Curtis NMDS ordination (Panel A)
 
+#### Background
+
 There are many ways to do this; here I'll use the `ordinate()` and
 `plot_ordination()` helper function from phyloseq to create the NMDS
-plot using the Bray-Curtis community dissimilarity metric. Note, that it
-is important to manually normalize the abundances to have the same total
-in each sample (e.g. by normalizing to proportions, as done here),
-otherwise the different total counts across samples will affect the
-results.
+plot using the Bray-Curtis community dissimilarity metric.
 
-```{r}
-?ordinate
-```
+NMDS stands for *non-metric multidimensional scaling.* The *non-metric*
+part is important, as NDMS takes into account the rank-order of
+different species across different samples, not the absolute or relative
+differences in abundance of different species. A good explanation of
+NMDS can be found
+[here](https://jonlefcheck.net/2012/10/24/nmds-tutorial-in-r).
+
+Still it is important to manually normalize the abundances to have the
+same total in each sample (e.g. by normalizing to proportions, as done
+here), otherwise the different total counts across samples will affect
+the results.
+
+#### Code
 
 ```{r}
 nmds <- ps_subset %>%     
@@ -553,18 +565,122 @@ ps_subset_ord
 
 ### Alpha diversity (Panel B)
 
-We can compute Shannon alpha diversity index for each sample in a
-variety of ways:
+#### Interlude on diversities and effective species numbers
+
+We can now compute Shannon alpha diversity index for each sample. The
+Shannon alpha diversity index is one of many ways to represent the
+diversity of a sample. One can understand it as the level of surprise
+when sampling random inividuals from a population. Holding the number of
+species constand, one is maximally surprised if all species have the
+same relative proportions. Similarly, one is more surprised if the
+number of different species present is higher.
+
+Diversity indices have one important attribute, that make their
+interpretation trickier than expected. Intuitively, one would expect
+that the diversity of a sample with 100 different, equally abundant
+species would be half as big as the diversity of a sample with 200
+different, equally abundant species. Let's take a closer look at this
+below (code taken from this [blog
+post](https://jonlefcheck.net/2012/10/23/diversity-as-effective-numbers/))
+
+**QUESTION:** Why the `;` after certain commands?
+
+```{r}
+community1=data.frame(t(rep(1,100))); colnames(community1)=paste("sp",1:100)
+community2=data.frame(t(rep(1,200))); colnames(community2)=paste("sp",1:200)
+
+S1=specnumber(community1); S1
+S2=specnumber(community2); S2
+S1==0.5*S2
+```
+
+As predicted, in these two communities, the species number of
+`community1` is exactly half that of `community2`
+
+Now, is the relation of Shannon diversities the same?
+
+```{r}
+H1=diversity(community1,index="shannon"); H1
+H2=diversity(community2,index="shannon"); H2
+
+H1==0.5*H2
+```
+
+It is not!
+
+We can explore this question further by plotting the different levels of
+Shannon diversity for communities of different sizes:
+
+```{r}
+shannon=matrix(ncol=2,nrow=1000)
+for(i in 1:1000) {
+  community=data.frame(t(rep(1,i))); colnames(community)=paste("sp",1:i)
+  shannon[i,1]=i
+  shannon[i,2]=diversity(community,index="shannon") }
+
+plot(shannon[,1],shannon[,2],xlab="Species Richness",ylab="Shannon Diversity",
+main="Relationship between Shannon diversity and Species Richness")
+```
+
+The paper "Entropy and diversity" by Jost L. (2006)
+([source](https://onlinelibrary.wiley.com/doi/epdf/10.1111/j.2006.0030-1299.14714.x))
+explores this further and gives an account of how to convert different
+Shannon diversities into "effective number of species", which provide a
+more intuitive account of a population's diversity.
+
+Getting to this effective number is very easy, by taking the exponential
+function (i.e. $$e^x$$) of the Shannon diversity, like so:
+
+```{r}
+#First, let's create a population with 100 equally abundant species
+community1=data.frame(t(rep(1,100))); colnames(community1)=paste("sp",1:100)
+
+#Then, let's compute the Shannon diversity H1 and the species number S1
+H1=diversity(community1,index="shannon"); H1
+S1=specnumber(community1); S1
+
+H1
+exp(H1)
+S1
+H1 == S1
+
+#Finally, let's exponentiate the Shannon diversity, again comparing it to S1. 
+round(exp(H1)) == S1
+```
+
+We had to round H1, as the results of certain types arithemtic are to
+truly identical to a direct representation of the known answer. More on
+this
+[here](https://cran.r-project.org/doc/FAQ/R-FAQ.html#Why-doesn_0027t-R-think-these-numbers-are-equal_003f).
+
+To tie all of this together, here the same graph as above, but with all
+Shannon diversities exponentiated.
+
+```{r}
+
+shannon=matrix(ncol=2,nrow=1000)
+for(i in 1:1000) {
+  community=data.frame(t(rep(1,i))); colnames(community)=paste("sp",1:i)
+  shannon[i,1]=i
+  shannon[i,2]=exp(diversity(community,index="shannon")) }
+
+plot(shannon[,1],shannon[,2],xlab="Species Richness",ylab="Effective Numbers of Species",main="Shannon (Effective)")
+```
+
+###  Code
+
+Going back to our data, we can calculate alpha diversity in a variety of
+ways:
 
 -   `phyloseq::estimate_richness()`
 -   `vegan::diversity()`
--   Performing the calculation ourselves from the definition <!--  -->
 
 ```{r}
 shannon_index <- otu_table(ps_subset) %>%
   orient_taxa(as = 'cols') %>%
   vegan::diversity()
 shannon_index %>% head
+
 ```
 
 Note that we needed to reorient the abundance matrix (i.e. OTU table) to
@@ -574,7 +690,7 @@ because the resulting diversity values are in a named vector where the
 names correspond to the sample names. If we had passed the matrix in the
 incorrect orientation, then the vector names would be the taxa names.
 
-Let's add the Shannon index to a copy of the sample data called
+Now we can add add the Shannon index to a copy of the sample data called
 `ps_subset`
 
 ```{r}
@@ -584,23 +700,27 @@ ps_subset <- ps_subset %>%
     experiment_class = experiment_class)
 ```
 
-then create the plot,
+then create the plot, using the effective number of species, by
+exponentiation of the Shannon index
 
 ```{r}
 p_div <- ps_subset %>% 
   sample_data %>% 
-  ggplot(aes(y = shannon_index, x = experiment_class,
+  ggplot(aes(y = exp(shannon_index), x = experiment_class,
       color = experiment_class)) +
   geom_boxplot(outlier.shape = NA) +
   geom_quasirandom() +
-  expand_limits(y = 0) +
-  # scale_color_manual(values = colors_countries) +
-  labs(x = 'experiment_class', y = 'Shannon index') +
+  expand_limits(y = c(0,160)) +
+  labs(x = 'Experiment Class', y = 'Effective Number of Species') +
   theme(
     axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
     legend.position = 'none'
   )
 p_div
+```
+
+```{r}
+?geom_poi
 ```
 
 Note, I'm plotting the data points over the box plots, since it is
