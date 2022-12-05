@@ -73,7 +73,9 @@ directory.
 
 ```{r}
 illumina_data_path <- here("data")
+metadata_data_path <- here("metadata")
 dir_ls(illumina_data_path) %>% path_file
+
 ```
 
 ### Data import
@@ -519,12 +521,13 @@ using the following tibble:
 
 ```{r}
 superkingdom_plot <- superkingdom_absolute_abun %>% 
-  pivot_longer(-sum_type, names_to = "sample_name", values_to = "count")
+  pivot_longer(-sum_type, names_to = "sample_name", values_to = "count") %>%
+  filter(sum_type != 'total_sums')
 
 superkingdom_plot
 
 ggplot(data = superkingdom_plot) +
-  geom_bar(mapping = aes(x=sample_name, fill=count), position = "fill")
+  geom_col(mapping = aes(x=sample_name, y = count, fill=sum_type), position = "fill")
           
 ```
 
@@ -538,11 +541,72 @@ Pseudocode:
       filter_tax_table(superkingdom == 'Bacteria') %>%
       
 
+**QUESTION: How to sort bar plots properly. Also make it looker nicer
+obv.**
+
+```{r}
+abun_table <- abun_subset_ps %>%
+  tax_glom('superkingdom') %>%
+  as_tibble %>%
+  #arrange(., .experiment_class) %>%
+  group_by(.sample) %>%
+  mutate(proportion = .abundance / sum(.abundance)) %>%
+  ungroup()
+
+abun_table %>%
+  ggplot(aes(x = .sample, y = .abundance, fill = superkingdom)) +
+  geom_col() +
+  scale_x_discrete(labels = abun_table[["experiment_type"]]) +
+  theme(axis.text.x = element_text(angle = 45))
+
+
+```
+
+```{r}
+
+
+
+```
+
+```{r}
+sample_pipeline <- read.csv (path(metadata_data_path, "2022_12_01_czid_sample_overview.csv"), header = TRUE)
+
+sample_pipeline_filtered <- sample_pipeline %>% 
+  filter(total_reads > 1e4)
+
+ps_sample_data <- ps %>% sample_data()
+
+sample_pipeline_filtered <- sample_pipeline_filtered %>% as_tibble %>%  left_join(.,as_tibble(ps_sample_data)$sample_sum, by = .experiment_type, copy = TRUE)
+
+?left_join
+```
+
+```{r}
+
+
+library(ggplot2)
+
+df <- data.frame(
+  experiment_type = c("A", "A", "B", "B", "C", "C"),
+  counts = c(10, 20, 30, 40, 50, 60)
+)
+
+ggplot(data = df, aes(x = counts)) +
+  geom_histogram(bins = 10) +
+  facet_wrap(~ experiment_type) +
+  xlab("Counts at different experiment stages") +
+  ylab("Number of counts")
+
+
+```
+
 ### Superkingdom relative abundances (ratios and proportions)
 
 -   \% of assigned reads (and host-filtered reads)
 
     -   Should be easily doable with CZID csvs
+
+<!-- -->
 
 -   Compare 'nt' and 'nr' results
 
@@ -595,7 +659,8 @@ ps %>% filter_sample_data(sample_sum < 1e3) %>% sample_data %>% .[["experiment_t
 ps_subset <- ps %>%
   filter_sample_data(sample_sum > 1e3) %>% 
   filter_tax_table(superkingdom == 'Viruses') %>%
-  filter_taxa2(~ sum(. > 0) > 2 & sum(.) >= 10)
+  filter_taxa2(~ sum(. > 0) > 2 & sum(.) >= 10) %>%
+  prune_samples(sample_sums(.) > 1e3, .)
 ```
 
 Using this subfilter, `ps_subset` only includes
@@ -747,7 +812,7 @@ for(i in 1:1000) {
 plot(shannon[,1],shannon[,2],xlab="Species Richness",ylab="Effective Numbers of Species",main="Shannon (Effective)")
 ```
 
-####  Code
+#### Code
 
 Going back to our data, we can calculate alpha diversity in a variety of
 ways:
