@@ -59,6 +59,7 @@ library(here)
 # microbiome analysis helpers
 library(biomformat)
 library(speedyseq)
+library(vegan)
 
 # plotting helpers
 library(cowplot)
@@ -538,51 +539,62 @@ abun_table %>%
   theme(axis.text.x = element_text(angle = 0, vjust=-0.011))
 ```
 
-```{r}
-
-
-
-```
-
 Now we want to display how many sequences made it through the CZID
-pipeline
+pipeline. FOr this we first subsample to larger samples \>10000 and
+information about the experiment type and the total number of assigned
+reads (`total_reads`)
 
 ```{r}
 sample_pipeline <- read.csv (path(metadata_data_path, "2022_12_01_czid_sample_overview.csv"), header = TRUE)
 
-sample_pipeline_filtered <- sample_pipeline %>% 
+large_samples_pipeline <- sample_pipeline %>% 
   filter(total_reads > 1e4)
 
 ps_sample_type_and_sum <- ps %>% sample_data() %>% as_tibble() %>% select(experiment_type, sample_sum)
 
-sample_pipeline_filtered <- sample_pipeline_filtered %>% left_join(.,ps_sample_type_and_sum, by = c("Experiment.Type" = "experiment_type"), copy = TRUE)
+large_samples_pipeline <- large_samples_pipeline %>% left_join(.,ps_sample_type_and_sum, by = c("Experiment.Type" = "experiment_type"), copy = TRUE)
 
 
 ```
 
-```{r}
-barplot_pipeline <- sample_pipeline_filtered %>% select(total_reads, reads_after_star, reads_after_trimmomatic, reads_after_priceseq, reads_after_czid_dedup, sample_sum,sample_name)
-
-geom_col
-```
+Second try:
 
 ```{r}
 
+#Subsetting dataframe for visualization
 
-library(ggplot2)
+barplot_pipeline <- large_samples_pipeline %>% select(sample_name, total_reads, reads_after_star, reads_after_trimmomatic, reads_after_priceseq, reads_after_czid_dedup, sample_sum,sample_name)
 
-df <- data.frame(
-  experiment_type = c("A", "A", "B", "B", "C", "C"),
-  counts = c(10, 20, 30, 40, 50, 60)
-)
+#Pivoting dataframe
 
-ggplot(data = df, aes(x = counts)) +
-  geom_histogram(bins = 10) +
-  facet_wrap(~ experiment_type) +
-  xlab("Counts at different experiment stages") +
-  ylab("Number of counts")
+barplot_pipeline <- barplot_pipeline %>% as_tibble %>% 
+  pivot_longer(c('total_reads', 'reads_after_star', 'reads_after_trimmomatic','reads_after_priceseq', 'reads_after_czid_dedup', 'sample_sum'),
+               names_to = "pipeline_stage", values_to = "reads")
 
+#Editing labels
 
+barplot_pipeline <- barplot_pipeline %>% 
+  mutate_if(is.character,
+            str_replace_all,
+            pattern = "reads_after_",
+            replacement = "") %>% 
+  mutate_if(is.character,
+          str_replace_all,
+          pattern = "sample_sum",
+          replacement = "assigned") %>% 
+  mutate_if(is.character,
+          str_replace_all,
+          pattern = "_reads",
+          replacement = "")  
+
+#Plotting
+
+barplot_pipeline %>% 
+  ggplot(aes(x= pipeline_stage, y = reads)) +
+  geom_col() +
+  facet_wrap(~ sample_name) +
+  theme(axis.text.x = element_text( vjust=-0.011)) +
+  scale_y_log10()
 ```
 
 ### Superkingdom relative abundances (ratios and proportions)
