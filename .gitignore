@@ -41,7 +41,7 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 
-# Including the lgos folder without content
+# Including the logs folder without content
 logs/*
 !logs/.gitkeep
 
@@ -56,6 +56,9 @@ slurm/nf-core-mag/*
 # Including the Slurm output folder
 !slurm/czid/.gitkeep
 !slurm/nf-core-mag/.gitkeep
+
+#Excluding raw_fasts due to space constraints
+raw_fastqs/*
 
 #MacOS files
 .DS_Store
