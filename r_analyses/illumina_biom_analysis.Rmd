@@ -458,8 +458,6 @@ tax %>%
 
 ## Taxonomic composition overview
 
-**QUESTION:** What would be most useful here?
-
 Look at the methods used in this paper by Hjelmso et al to find out
 which analyses they have done:
 <https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0170199#sec002>
@@ -510,36 +508,10 @@ superkingdom_absolute_abun <- bind_rows(total_sums,
                                         archaea_sums, 
                                         eukaryota_sums, 
                                         .id = "sum_type") %>% 
-  mutate(sum_type = rownames)
+mutate(sum_type = rownames)
 
 superkingdom_absolute_abun
 ```
-
-**QUESTION:** How to create [this
-plot](https://r4ds.had.co.nz/data-visualisation.html#creating-a-ggplot:~:text=position%20%3D%20%22fill%22%20works%20like%20stacking%2C%20but%20makes%20each%20set%20of%20stacked%20bars%20the%20same%20height.%20This%20makes%20it%20easier%20to%20compare%20proportions%20across%20groups.)
-using the following tibble:
-
-```{r}
-superkingdom_plot <- superkingdom_absolute_abun %>% 
-  pivot_longer(-sum_type, names_to = "sample_name", values_to = "count") %>%
-  filter(sum_type != 'total_sums')
-
-superkingdom_plot
-
-ggplot(data = superkingdom_plot) +
-  geom_col(mapping = aes(x=sample_name, y = count, fill=sum_type), position = "fill")
-          
-```
-
-Pseudocode:
-
-    abun_subset_ps <- ps %>%
-      filter_sample_data(sample_sum > 1e3) %>% 
-      filter_taxa2(~ sum(. > 0) > 2 & sum(.) >= 10) 
-      
-    abun_subset_ps %>%
-      filter_tax_table(superkingdom == 'Bacteria') %>%
-      
 
 **QUESTION: How to sort bar plots properly. Also make it looker nicer
 obv.**
@@ -557,9 +529,13 @@ abun_table %>%
   ggplot(aes(x = .sample, y = .abundance, fill = superkingdom)) +
   geom_col() +
   scale_x_discrete(labels = abun_table[["experiment_type"]]) +
-  theme(axis.text.x = element_text(angle = 45))
-
-
+  theme(axis.text.x = element_text(angle = 0, vjust=-0.011))
+  
+abun_table %>% 
+  ggplot(aes(x = .sample, y = .abundance, fill = superkingdom)) +
+  geom_col(position = "fill") +
+  scale_x_discrete(labels = abun_table[["experiment_type"]]) +
+  theme(axis.text.x = element_text(angle = 0, vjust=-0.011))
 ```
 
 ```{r}
@@ -567,6 +543,9 @@ abun_table %>%
 
 
 ```
+
+Now we want to display how many sequences made it through the CZID
+pipeline
 
 ```{r}
 sample_pipeline <- read.csv (path(metadata_data_path, "2022_12_01_czid_sample_overview.csv"), header = TRUE)
@@ -574,11 +553,17 @@ sample_pipeline <- read.csv (path(metadata_data_path, "2022_12_01_czid_sample_ov
 sample_pipeline_filtered <- sample_pipeline %>% 
   filter(total_reads > 1e4)
 
-ps_sample_data <- ps %>% sample_data()
+ps_sample_type_and_sum <- ps %>% sample_data() %>% as_tibble() %>% select(experiment_type, sample_sum)
 
-sample_pipeline_filtered <- sample_pipeline_filtered %>% as_tibble %>%  left_join(.,as_tibble(ps_sample_data)$sample_sum, by = .experiment_type, copy = TRUE)
+sample_pipeline_filtered <- sample_pipeline_filtered %>% left_join(.,ps_sample_type_and_sum, by = c("Experiment.Type" = "experiment_type"), copy = TRUE)
 
-?left_join
+
+```
+
+```{r}
+barplot_pipeline <- sample_pipeline_filtered %>% select(total_reads, reads_after_star, reads_after_trimmomatic, reads_after_priceseq, reads_after_czid_dedup, sample_sum,sample_name)
+
+geom_col
 ```
 
 ```{r}
