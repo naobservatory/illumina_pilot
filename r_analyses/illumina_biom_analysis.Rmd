@@ -319,11 +319,11 @@ metadata, consisting of experimental classes:
 !!! Make experiment class assignments robust.
 
 ```{r}
-experiment_class <- c("peg_preciptation", "peg_preciptation", "ceres", 
-                         "peg_preciptation", "ceres", "ceres", "amicon", 
+experiment_class <- c("peg_preciptation", "peg_preciptation", "ceres",
+                         "peg_preciptation", "ceres", "ceres", "amicon",
                          "peg_preciptation", "amicon", "ceres", "amicon", "amicon")
 
-ps <- ps %>% 
+ps <- ps %>%
   mutate_sample_data(
     experiment_class = experiment_class)
 ```
@@ -350,9 +350,7 @@ sam %>%
   geom_histogram()
 ```
 
-```{r}
-?fct_explicit_na
-```
+
 
 **QUESTION:** Can we walk through the code below?
 
@@ -476,25 +474,25 @@ First, calculate abundance sums for each sample
 
 ```{r}
 abun_subset_ps <- ps %>%
-  filter_sample_data(sample_sum > 1e3) %>% 
-  filter_taxa2(~ sum(. > 0) > 2 & sum(.) >= 10) 
+  filter_sample_data(sample_sum > 1e3) %>%
+  filter_taxa2(~ sum(. > 0) > 2 & sum(.) >= 10)
 
-total_sums <- abun_subset_ps %>% 
+total_sums <- abun_subset_ps %>%
   sample_sums(.)
 
-bacteria_sums <- abun_subset_ps %>% 
+bacteria_sums <- abun_subset_ps %>%
   filter_tax_table(superkingdom == 'Bacteria') %>%
   sample_sums(.)
 
-virus_sums <- abun_subset_ps %>% 
+virus_sums <- abun_subset_ps %>%
   filter_tax_table(superkingdom == 'Viruses') %>%
   sample_sums(.)
 
-archaea_sums <- abun_subset_ps %>% 
+archaea_sums <- abun_subset_ps %>%
   filter_tax_table(superkingdom == 'Archaea') %>%
   sample_sums(.)
 
-eukaryota_sums <- abun_subset_ps %>% 
+eukaryota_sums <- abun_subset_ps %>%
   filter_tax_table(superkingdom == 'Eukaryota') %>%
   sample_sums(.)
 ```
@@ -503,12 +501,12 @@ eukaryota_sums <- abun_subset_ps %>%
 
 rownames <- c("total_sums", "bacteria_sums", "virus_sums", "archaea_sums", "eukaryota_sums")
 
-superkingdom_absolute_abun <- bind_rows(total_sums, 
-                                        bacteria_sums, 
-                                        virus_sums, 
-                                        archaea_sums, 
-                                        eukaryota_sums, 
-                                        .id = "sum_type") %>% 
+superkingdom_absolute_abun <- bind_rows(total_sums,
+                                        bacteria_sums,
+                                        virus_sums,
+                                        archaea_sums,
+                                        eukaryota_sums,
+                                        .id = "sum_type") %>%
 mutate(sum_type = rownames)
 
 superkingdom_absolute_abun
@@ -531,8 +529,8 @@ abun_table %>%
   geom_col() +
   scale_x_discrete(labels = abun_table[["experiment_type"]]) +
   theme(axis.text.x = element_text(angle = 0, vjust=-0.011))
-  
-abun_table %>% 
+
+abun_table %>%
   ggplot(aes(x = .sample, y = .abundance, fill = superkingdom)) +
   geom_col(position = "fill") +
   scale_x_discrete(labels = abun_table[["experiment_type"]]) +
@@ -547,7 +545,7 @@ reads (`total_reads`)
 ```{r}
 sample_pipeline <- read.csv (path(metadata_data_path, "2022_12_01_czid_sample_overview.csv"), header = TRUE)
 
-large_samples_pipeline <- sample_pipeline %>% 
+large_samples_pipeline <- sample_pipeline %>%
   filter(total_reads > 1e4)
 
 ps_sample_type_and_sum <- ps %>% sample_data() %>% as_tibble() %>% select(experiment_type, sample_sum)
@@ -567,34 +565,36 @@ barplot_pipeline <- large_samples_pipeline %>% select(sample_name, total_reads, 
 
 #Pivoting dataframe
 
-barplot_pipeline <- barplot_pipeline %>% as_tibble %>% 
+barplot_pipeline <- barplot_pipeline %>% as_tibble %>%
   pivot_longer(c('total_reads', 'reads_after_star', 'reads_after_trimmomatic','reads_after_priceseq', 'reads_after_czid_dedup', 'sample_sum'),
                names_to = "pipeline_stage", values_to = "reads")
 
 #Editing labels
 
-barplot_pipeline <- barplot_pipeline %>% 
+barplot_pipeline <- barplot_pipeline %>%
   mutate_if(is.character,
             str_replace_all,
             pattern = "reads_after_",
-            replacement = "") %>% 
+            replacement = "") %>%
   mutate_if(is.character,
           str_replace_all,
           pattern = "sample_sum",
-          replacement = "assigned") %>% 
+          replacement = "assigned") %>%
   mutate_if(is.character,
           str_replace_all,
           pattern = "_reads",
-          replacement = "")  
+          replacement = "")
 
-#Plotting
+#Recoloring barplot_pipeline to make it look nicer
 
-barplot_pipeline %>% 
+barplot_pipeline %>% mutate(pipeline_stage = factor(pipeline_stage, levels = c("total", "star", "trimmomatic", "priceseq", "czid_dedup", "assigned"))) %>%
   ggplot(aes(x= pipeline_stage, y = reads)) +
   geom_col() +
   facet_wrap(~ sample_name) +
-  theme(axis.text.x = element_text( vjust=-0.011)) +
+  theme(axis.text.x = element_text(angle = 45, vjust=0.6)) +
   scale_y_log10()
+
+```
 ```
 
 ### Superkingdom relative abundances (ratios and proportions)
@@ -654,7 +654,7 @@ ps %>% filter_sample_data(sample_sum < 1e3) %>% sample_data %>% .[["experiment_t
 
 ```{r}
 ps_subset <- ps %>%
-  filter_sample_data(sample_sum > 1e3) %>% 
+  filter_sample_data(sample_sum > 1e3) %>%
   filter_tax_table(superkingdom == 'Viruses') %>%
   filter_taxa2(~ sum(. > 0) > 2 & sum(.) >= 10) %>%
   prune_samples(sample_sums(.) > 1e3, .)
@@ -669,7 +669,7 @@ ntaxa(ps_subset)
 taxa, while `ps` includes
 
 ```{r}
-ntaxa(ps) 
+ntaxa(ps)
 ```
 
 taxa.
@@ -697,11 +697,11 @@ the results.
 #### Code
 
 ```{r}
-nmds <- ps_subset %>%     
-  speedyseq::transform_sample_counts(~ . / sum(.)) %>%     
-  ordinate(method = "NMDS", distance = "bray", trymax = 50) 
-ps_subset_ord <- plot_ordination(ps_subset, nmds,   color = "experiment_type", type = "samples", label = "experiment_class") +   
-  labs(color = 'experiment_type') 
+nmds <- ps_subset %>%
+  speedyseq::transform_sample_counts(~ . / sum(.)) %>%
+  ordinate(method = "NMDS", distance = "bray", trymax = 50)
+ps_subset_ord <- plot_ordination(ps_subset, nmds,   color = "experiment_type", type = "samples", label = "experiment_class") +
+  labs(color = 'experiment_type')
 ps_subset_ord
 ```
 
@@ -786,7 +786,7 @@ exp(H1)
 S1
 H1 == S1
 
-#Finally, let's exponentiate the Shannon diversity, again comparing it to S1. 
+#Finally, let's exponentiate the Shannon diversity, again comparing it to S1.
 round(exp(H1)) == S1
 ```
 
@@ -835,7 +835,7 @@ incorrect orientation, then the vector names would be the taxa names.
 Now we can add add the Shannon index to our sample data.
 
 ```{r}
-ps_subset <- ps_subset %>% 
+ps_subset <- ps_subset %>%
   speedyseq::mutate_sample_data(
     shannon_index = shannon_index)
 ```
@@ -844,8 +844,8 @@ then create the plot, using the effective number of species, by
 exponentiating the Shannon index
 
 ```{r}
-p_div <- ps_subset %>% 
-  sample_data %>% 
+p_div <- ps_subset %>%
+  sample_data %>%
   ggplot(aes(y = exp(shannon_index), x = experiment_class,
       color = experiment_class)) +
   geom_boxplot(outlier.shape = NA) +
@@ -863,8 +863,8 @@ p_div
 absolute number of species present in each sample?
 
 ```{r}
-ps_subset %>% 
-  as_tibble %>% 
+ps_subset %>%
+  as_tibble %>%
   with_groups(.sample, ntaxa)
 ```
 
@@ -879,10 +879,10 @@ effective number of species.
 Now we can also redo our ordination, labeling by 'experiment_class'.
 
 ```{r}
-nmds <- ps_subset %>%     
-  speedyseq::transform_sample_counts(~ . / sum(.)) %>%     
-  ordinate(method = "NMDS", distance = "bray", trymax = 50) 
-p_ord <- plot_ordination(ps_subset, nmds,   
+nmds <- ps_subset %>%
+  speedyseq::transform_sample_counts(~ . / sum(.)) %>%
+  ordinate(method = "NMDS", distance = "bray", trymax = 50)
+p_ord <- plot_ordination(ps_subset, nmds,
                          color = "experiment_class", type = "samples" ) +
   labs(color = 'experiment_class')
 p_ord
