@@ -22,6 +22,7 @@ remove output of certain chunks. e.g. message = TRUE and warning = FALSE
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
   echo = TRUE,
+  warning = FALSE,
   cache = TRUE,
   autodep = TRUE,
   cache.comments = FALSE,
