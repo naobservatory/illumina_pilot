@@ -60,8 +60,9 @@ slurm/nf-core-mag/*
 
 # Content of FastQC output folder
 fastqc_analyses/raw_sequences/*
-fastqc_analyses/raw_sequences_compressed/*
-fastqc_analyses/fastqc_reports
+fastqc_analyses/raw_sequences_compressed/
+!fastqc_analyses/raw_sequences_compressed/.gitkeep
+
 
 
 #MacOS files
