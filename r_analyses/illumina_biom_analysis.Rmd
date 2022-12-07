@@ -23,6 +23,7 @@ remove output of certain chunks. e.g. message = TRUE and warning = FALSE
 knitr::opts_chunk$set(
   echo = TRUE,
   cache = TRUE,
+  warning=FALSE,
   autodep = TRUE,
   cache.comments = FALSE,
   dpi = 300
@@ -178,7 +179,6 @@ package. That is fine for now, though phyloseq will want a standard
 ```{r}
 sam <- biom %>% sample_metadata()
 sam %>% class
-sam %>% head
 sam %>% glimpse
 ```
 
@@ -208,7 +208,6 @@ Note, when using glimpse we observe that taxonomy level 2 (under
 ```{r}
 tax <- biom %>% observation_metadata()
 tax %>% class
-tax %>% head(2)
 tax %>% glimpse()
 ```
 
@@ -350,9 +349,7 @@ sam %>%
   geom_histogram()
 ```
 
-
-
-**QUESTION:** Can we walk through the code below?
+**QUESTION:** Can we walk through the code below + potentially fix it?
 
 ```{r}
 taxon_stats <- ps %>%
@@ -555,7 +552,7 @@ large_samples_pipeline <- large_samples_pipeline %>% left_join(.,ps_sample_type_
 
 ```
 
-Second try:
+TODO: Make prettier!
 
 ```{r}
 
@@ -595,51 +592,49 @@ barplot_pipeline %>% mutate(pipeline_stage = factor(pipeline_stage, levels = c("
   scale_y_log10()
 
 ```
+
+```{r}
+
 ```
 
-### Superkingdom relative abundances (ratios and proportions)
+Superkingdom relative abundances (ratios and proportions)
 
--   \% of assigned reads (and host-filtered reads)
+    -   Compare 'nt' and 'nr' results
 
-    -   Should be easily doable with CZID csvs
+    -   Show how many reads do not have a full taxonomic analysis
 
-<!-- -->
+    -   Of what remains, what is each sequence
 
--   Compare 'nt' and 'nr' results
+    -   Different types of ordination
 
--   Show how many reads do not have a full taxonomic analysis
+        -   CPCA -\> do that on super kingdom analysis
 
--   Of what remains, what is each sequence
 
--   Different types of ordination
 
-    -   CPCA -\> do that on super kingdom analysis
+    -   Compare neg controls to other samples (ordination/distances,
+        decontam analysis)
 
--   Next week start writing a report to hand out to everyo
+    ## Recreating the Rothman et al 2021 Figure 4 using Illumina data
 
--   Compare neg controls to other samples (ordination/distances,
-    decontam analysis)
+    Rothman Figure 4: ([source of
+    paper](https://journals.asm.org/doi/full/10.1128/AEM.01448-21); [source
+    of R
+    code](https://github.com/jasonarothman/wastewater_viromics_sarscov2/tree/main/github_R_scripts))
 
-## Recreating the Rothman et al 2021 Figure 4 using Illumina data
+    ![](images/paste-58683FF7.png)
 
-Rothman Figure 4: ([source of
-paper](https://journals.asm.org/doi/full/10.1128/AEM.01448-21); [source
-of R
-code](https://github.com/jasonarothman/wastewater_viromics_sarscov2/tree/main/github_R_scripts))
+    ### Filtering our samples
 
-![](images/paste-58683FF7.png)
+    Prep: Note, it is often helpful to filter out some samples and taxa
+    prior to doing some downstream analysis.
 
-### Filtering our samples
-
-Prep: Note, it is often helpful to filter out some samples and taxa
-prior to doing some downstream analysis.
-
--   First we remove all samples with very low read counts, here defined
-    as under 1000 reads. We would thus exclude all controls and the
-    Ceres filtered sample.
+    -   First we remove all samples with very low read counts, here defined
+        as under 1000 reads. We would thus exclude all controls and the
+        Ceres filtered sample.
 
 ```{r}
 ps %>% filter_sample_data(sample_sum < 1e3) %>% sample_data %>% .[["experiment_type"]]
+
 ```
 
 -   We also want to subset to just viruses for now (the Rothman analysis
@@ -863,9 +858,9 @@ p_div
 absolute number of species present in each sample?
 
 ```{r}
-ps_subset %>%
-  as_tibble %>%
-  with_groups(.sample, ntaxa)
+#ps_subset %>%
+  #as_tibble %>%
+  #with_groups(.sample, ntaxa)
 ```
 
 Note, I'm plotting the data points over the box plots, since it is
