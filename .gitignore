@@ -10,6 +10,7 @@
 
 # Genomic Sequences
 *.fastq.gz
+*.fastq
 
 # Example code in package build process
 *-Ex.R
@@ -56,6 +57,10 @@ slurm/nf-core-mag/*
 # Including the Slurm output folder
 !slurm/czid/.gitkeep
 !slurm/nf-core-mag/.gitkeep
+
+# Content of FastQC output folder
+fastqc_analyses/*
+!fastqc_analyses/.gitkeep
 
 #MacOS files
 .DS_Store
