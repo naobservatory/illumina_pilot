@@ -58,6 +58,12 @@ slurm/nf-core-mag/*
 !slurm/czid/.gitkeep
 !slurm/nf-core-mag/.gitkeep
 
+# Content of FastQC output folder
+fastqc_analyses/raw_sequences/*
+fastqc_analyses/raw_sequences_compressed/*
+fastqc_analyses/fastqc_reports
+
+
 #MacOS files
 .DS_Store
 
