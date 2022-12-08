@@ -1,5 +1,5 @@
 ---
-title: "Date Import and Cleaning"
+title: "Illumina analysis"
 author:
   - name: Simon Grimm
     url: {}
@@ -11,8 +11,6 @@ output:
   html_document:
     self_contained: true
     toc: true
-    toc_flot: true
-    code_folding: false
 editor_options:
   markdown:
     wrap: 72
@@ -21,45 +19,24 @@ editor_options:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
   echo = TRUE,
+  warning = FALSE,
   cache = TRUE,
   warning=FALSE,
+  code_folding = TRUE,
   autodep = TRUE,
   cache.comments = FALSE,
   dpi = 300
 )
 ```
 
-# Background
+# Analysis
 
-Todo:
+## R packages
 
--   Seperate data import + cleaning in a different Rmd
-
--   Make a data dictionary
-
--   Clean metadata (add character types, make snake_case, replace null
-    with NA, separate Notes column)
-
-Here I will import and clean all data required to analyze initial
-Illumina runs which were submitted in October 2022.
-
-We will work with [.biom files](https://biom-format.org/), acquired from
-a CZID analysis of our data (link
-[here](https://czid.org/my_data?currentDisplay=table&currentTab=samples&mapSidebarTab=summary&projectId=4788&showFilters=true&showStats=true&updatedAt=2022-10-07T18%3A28%3A46.867Z&workflow=short-read-mngs),
-only available when given access. Reach out to simon\@securebio.org if
-you do not have access)
-
-# Introduction
-
-### R packages
+Loading our required R packages.
 
 ```{r}
-install.packages("TidyMultiqc")
-```
 
-We start by loading all required R packages:
-
-```{r}
 # set of data analysis and viz tools
 library(tidyverse)
 
@@ -81,426 +58,29 @@ library(vegan)
 library(cowplot)
 library(patchwork)
 library(ggbeeswarm)
-
-theme_set(theme_cowplot())
 ```
 
-We then set the folder containing the `.biom` file as our `here`
-directory.
+Defining our directories
 
 ```{r}
-illumina_data_path <- here("data")
+biom_data_path <- here("data")
+multiqc_data_path <- here("data/fastqc_analyses/multiqc_reports/multiqc_data")
 metadata_data_path <- here("metadata")
-dir_ls(illumina_data_path) %>% path_file
-
+output_data_path <- here("output")
+dir_ls(multiqc_data_path) %>% path_file
 ```
-
-### Data import
-
-We now import the BIOM file (Combined Microbiome File.biom)
-
-```{r, error = TRUE, eval = FALSE}
-biom <- path(illumina_data_path, '2022_11_14_Illumina_pilot_nt_r.biom') %>%
-  read_biom()
-```
-
-Note, if we try reading in the file as directly exported from CZID, we
-get an error:
-
-    Error in validObject(.Object) :
-      invalid class “biom” object: type field has unsupported value
-
-This error arises because the 'type' of the data object defined in the
-JSON-formatted contents of the `.biom` file isn't valid as per the BIOM
-format v1.0 specs, see
-<https://biom-format.org/documentation/format_versions/biom-1.0.html>.
-
-We can see this by opening up the file and looking for the type argument
-towards the beginning; or looking at the top items in the list after
-reading in the file with a JSON parser.
-
-```{r}
-biom_json <- path(illumina_data_path,
-  '2022_11_14_Illumina_pilot_nt_r.biom') %>%
-  jsonlite::read_json()
-biom_json %>% head(7)
-```
-
-We can fix the file by changing the type from 'Table' to something
-valid. It doesn't actually matter what we use:
-
-> While type is a required entry in BIOM tables, the BIOM format itself
-> does not change for different data types (e.g., OTU Table, function
-> table, metabolite table). This information is included to allow tools
-> that use BIOM files to determine the data type, if desired. (Caption
-> for Additional file 5 in @mcdonald2012theb)
-
-<https://academic.oup.com/gigascience/article/1/1/2047-217X-1-7/2656152>
-
-For now, let's use 'Taxon table'.
-
-```{r}
-biom_text <- path(illumina_data_path, '2022_11_14_Illumina_pilot_nt_r.biom') %>%
-  read_file
-stopifnot( identical(biom_text %>% str_count('"Table"'), 1L) )
-biom_text_fixed <- biom_text %>%
-  str_replace('"Table"', '"Taxon table"')
-write_file(
-  biom_text_fixed,
-  path(illumina_data_path, '2022_11_14_Illumina_pilot_nt_r_fixed.biom')
-)
-
-```
-
-The above chunk reads in the BIOM file's contents as a single string,
-checks that '"Table"' appears only once (in the field where it is set as
-the type), then replaces it with '"Taxon table"'), then writes the
-string as a new BIOM file. We should now be able to load the corrected
-BIOM file with the `biomformat` package,
-
-```{r}
-biom <- path(illumina_data_path, '2022_11_14_Illumina_pilot_nt_r_fixed.biom') %>% read_biom() %>%
-  print
-```
-
-Note: For most objects in R, the `print()` and `glimpse()` methods
-silently return the object as well as printing information about it.
-Adding a `print` or `glimpse` call at the end of a variable-assignment
-pipe chain is a succinct way to save an object and show some info about
-it.
-
-### Creating a phyloseq object
-
-The abundance (count) matrix, sample metadata table, and taxonomy table
-can be extracted with three corresponding functions functions from the
-biomformat package.
-
-We'll tackle these one at a time. First, the abundance matrix.
-
-#### Abundance matrix
-
-```{r}
-abun <- biom %>% biom_data()
-abun %>% class
-abun %>% dim
-```
-
-The abundance matrix is stored as a sparse matrix from the Matrix
-package. That is fine for now, though phyloseq will want a standard
-(dense) matrix. Next we will extract the sample metadata.
-
-#### Sample Metadata
-
-```{r}
-sam <- biom %>% sample_metadata()
-sam %>% class
-sam %>% glimpse
-```
-
-The sample metadata is a standard data frame with rownames giving sample
-ids, and the taxonomy information is stored as a list. Notice how all
-the variable names are in snake case except for one. This is apparently
-because the CZID BIOM exports its own standard variables as snake case
-(though shows them otherwise in the online interface), but leaves custom
-variables unchanged. \
-It is convenient to standardize all variable names to snake case; an
-easy way to do this is with the function `janitor::clean_names()`.
-
-```{r}
-sam <- sam %>%
-  janitor::clean_names() %>%
-  glimpse
-```
-
-#### Additional Metadata
-
-We can now also add some additional metadata to our sample metadata.
-First we attach metadata acquired through analyses that weren't
-performed by CZID, such as FASTQC analyses.
-
-```{r}
-
-```
-
-Next, the taxonomy table, or what the biomformat package calls the
-'observation metadata'.
-
-#### Taxonomy table
-
-Note, when using glimpse we observe that taxonomy level 2 (under
-'Bacteria') is blank. Might be worth investigating why that is.
-
-```{r}
-tax <- biom %>% observation_metadata()
-tax %>% class
-tax %>% glimpse()
-```
-
-We can see that here we have a list, with one element per taxon. The
-documentation for `biomformat::observation_metadata` indicates that this
-function may return a 'data.frame' rather than a list, if it is able to,
-but does not say under what conditions that will be the case. Ultimately
-we want a data frame (or tibble). The following code chunk checks which
-we have, and if we have a list, tries to turn it into a data frame by
-spreading out the taxonomy vector of each list element into a table.
-
-```{r}
-tax_tmp <- biom %>% observation_metadata()
-if (is.data.frame(tax_tmp)) {
-  tax <- tax_tmp %>% as_tibble(rownames = '.otu')
-} else {
-  tax <- tax_tmp %>%
-    enframe(name = 'feature_id') %>%
-    unnest_wider(value)
-}
-rm(tax_tmp)
-tax %>% glimpse
-```
-
-To understand this table further, we can first look at the first column.
-This contains the entire taxonomic structure of one organism in one
-variable, like so:
-
-`Bacteria;NA;Proteobacteria;Alphaproteobacteria;Rhizobiales;Xanthobacteraceae;Azorhizobium;Azorhizobium caulinodan`
-
-The following columns then show all the taxonomic information broken
-down by different taxa levels:
-
-```{r}
-glimpse(as_tibble(tax[1:3, 2:9]))
-```
-
-To facilitate downstream analysis, it is helpful to clean up some of the
-taxonomic labels.
-
-1.  Replace the taxonomic ranks with the standard NCBI rank names (see
-    an example [NCBI taxonomic
-    record](https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=9606))
-2.  In cases where the rank is missing/unassigned, replace the empty
-    string with NA.
-
-```{r}
-rnks <- c('superkingdom', 'kingdom', 'phylum', 'class', 'order', 'family',
-  'genus', 'species')
-colnames(tax)[2:9] <- rnks
-# use NA for missing ranks
-tax <- tax %>%
-  mutate(
-    across(everything(), ~ifelse(. == "", NA_character_, .))
-  )
-tax %>% glimpse
-```
-
-Now let's import all three tables into a single `phyloseq` object. This
-involves converting each individual table into the corresponding class
-from the `phyloseq` package, and then combining these into one
-phyloseq-class object.
-
-```{r}
-ps <- phyloseq(
-  otu_table(abun %>% as.matrix, taxa_are_rows = TRUE),
-  sample_data(sam),
-  tax_table(tax)
-)
-```
-
-Note that we had to first coerce the abundance matrix to a standard
-dense matrix; we also needed to tell phyloseq that taxa corresponded to
-rows in the matrix.
-
-#### 
-
-# Basic data checks and stats
-
-(Comments from here on out are by Simon)
-
-Our `phyloseq` object consists of several tables, one of which is our
-sample metadata:
-
-```{r}
-ps %>% sample_data() %>% glimpse
-```
-
-Understanding how many individual species are covered by each sample
-gives us an initial large scale picture of how samples differ. We can
-thus add a column for our sample metadata consisting of the sum of all
-individual species:
-
-```{r}
-ps <- ps %>%
-  mutate_sample_data(.,
-    sample_sum = sample_sums(.)
-  )
-sam <- ps %>% sample_data %>% as_tibble
-tax <- ps %>% tax_table %>% as_tibble
-```
-
-It will also be interesting to compare groups of samples by their
-experimental protocols. For this, we can add a column to our sample
-metadata, consisting of experimental classes:
-
-**QUESTION: How to leftjoin sample_data, matching on experiment_type,
-within the function `mutate_sample_date`**?
-
-```{r}
-experiment_type <- ps %>% sample_data() %>% 
-  as_tibble() %>% 
-  pull(experiment_type)
-
-experiment_class <- c("peg_preciptation", "peg_preciptation", "ceres",
-                      "peg_preciptation", "ceres", "ceres", 
-                      "amicon","peg_preciptation", "amicon", 
-                      "ceres", "amicon", "amicon") %>% 
-  sort()
-
-experiment_type <- c("P1", "P2" ,"CU-C" ,
-                     "P3", "CU2", "CF", 
-                     "A3", "P-C", "A-C", 
-                     "CU1", "A1","A2") %>% 
-  sort()
-
-
-experiment_class_type <- tibble(experiment_class, experiment_type)
-
-
-
-mutate_sample_data
-
-ps <- ps %>%
-  mutate_sample_data(
-    experiment_class = experiment_class)
-```
-
-```{r}
-ps %>% t
-
-```
-
-As visible in the crude table below, there are multiple samples with
-very small species amounts, while other samples contain more than
-150'000 individual species. The samples with very low species counts are
-controls (A-C, CU-C, PC) and the CERES filtered sample.
-
-```{r}
-sam %>%
-  ggplot(aes(sample_sum, fill = experiment_class)) +
-  scale_x_log10() +
-  geom_histogram()
-
-sam %>%
-  ggplot(aes(sample_sum, fill = experiment_type)) +
-  scale_x_log10() +
-  geom_histogram()
-```
-
-#### **QUESTION:** Can we walk through the code below + potentially fix it?
-
-```{r}
-taxon_stats <- ps %>%
-  as_tibble %>%
-  mutate(across(superkingdom, fct_explicit_na)) %>%
-  with_groups(c(.otu, superkingdom), summarize,
-    prev_1 = sum(.abundance >= 1),
-    prev_10 = sum(.abundance >= 10),
-    total = sum(.abundance),
-    proportion = mean(.abundance / sample_sum)
-  )
-```
-
-```{r}
-taxon_stats %>%
-  pivot_longer(-c(.otu, superkingdom)) %>%
-  ggplot(aes(value, fill = superkingdom)) +
-  facet_wrap(~name, scales = 'free') +
-  scale_x_log10() +
-  scale_fill_brewer(type = 'qual') +
-  geom_histogram()
-```
-
-## Taxonomy
-
-NCBI taxonomy has recently received changes in some prokaryotic phylum
-names. Let's check to see which version of phylum names are being used
-here, by seeing whether a Bacteroides species' phylum is listed as
-'Bacteroidetes' (old name) or 'Bacteroidota' (new name).
-
-```{r}
-tax %>%
-  filter(genus == 'Bacteroides') %>%
-  slice(1)%>%
-  glimpse
-```
-
-If we look at [this taxon in NCBI
-taxonomy](https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=1263047),
-we can see that NCBI has adopted the new phylum name 'Bacteroidota';
-however, here we see the old phylum name. This suggests that CZID is
-currently using an older version of NCBI prior to the name change.
-
-see -
-<https://ncbiinsights.ncbi.nlm.nih.gov/2021/12/10/ncbi-taxonomy-prokaryote-phyla-added/> -
-<https://www.the-scientist.com/news-opinion/newly-renamed-prokaryote-phyla-cause-uproar-69578>
-<!--  -->
-
-We can now also look at the fraction of each taxa level which is
-classified. In total there are 12447 classified species:
-
-```{r}
-tax %>%
-  pivot_longer(-.otu, names_to = 'rank') %>%
-  with_groups(rank, summarize,
-    features_classified = sum(!is.na(value)),
-    features_total = n()
-  ) %>%
-  mutate(
-    frac_classified = features_classified / features_total,
-    rank = factor(rank, rank_names(ps))
-  ) %>%
-  arrange(rank)
-```
-
-This analysis points to some notable features of the data. For example,
-not every taxonomic feature has a superkingdom. Let's take a look at
-some of those 'species' that don't:
-
-```{r}
-set.seed(42)
-tax %>%
-  filter(is.na(superkingdom)) %>%
-  select(superkingdom, kingdom, genus, species) %>%
-  slice_sample(n=20)
-```
-
-As we see, there are some sequences that are classified as cloning and
-expression vectors.
-
-What about 'species' without intermediate ranks?
-
-```{r}
-tax %>%
-  filter(!is.na(superkingdom), is.na(family)) %>%
-  select(superkingdom, kingdom, phylum, family, genus, species) %>%
-  slice_sample(n=20)
-```
-
-Different than before these sequences seem to match NCBI records that
-aren't well annotated (e.g., "Uncultured Bacterium")
-
-Lastly we can look at how species break down by superkingdom:
-
-```{r}
-tax %>%
-  count(superkingdom) %>%
-  mutate(fraction = n / sum(n))
-```
-
-# Analysis
 
 ## Taxonomic composition overview
 
 Look at the methods used in this paper by Hjelmso et al to find out
 which analyses they have done:
 <https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0170199#sec002>
+
+### Loading our data
+
+```{r}
+ps <- readRDS(here(output_data_path, "2022_12_08_illumina_phyloseq.Rds"))
+```
 
 ### **Relative abundances of superkingdoms**
 
@@ -988,24 +568,24 @@ the following table.
 #### **QUESTION:** What is the underlying error here?
 
 ```{r, fig.dim = c(10,5)}
-p_prop <- x %>%
-  filter(.otu %in% top_viruses2) %>%
-  mutate(
-    across(genus, fct_reorder, proportion, .fun = median, .desc = TRUE),
-  ) %>%
-  ggplot(aes(x = experiment_type, y = proportion,
-      color = experiment_class)) +
-  facet_wrap(~genus, nrow = 2, scales = 'free_y') +
-  scale_y_log10() +
-  geom_boxplot() +
-  geom_jitter() +
-  labs(y = 'Proportion', x = 'experiment_type') +
-  theme(
-    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
-    legend.position = 'none'
-  )
-
-p_prop
+#p_prop <- x %>%
+ # filter(.otu %in% top_viruses2) %>%
+  #mutate(
+   # across(genus, fct_reorder, proportion, .fun = median, .desc = TRUE),
+  #) %>%
+  #ggplot(aes(x = experiment_type, y = proportion,
+  #    color = experiment_class)) +
+  #facet_wrap(~genus, nrow = 2, scales = 'free_y') +
+  #scale_y_log10() +
+  #geom_boxplot() +
+  #geom_jitter() +
+  #labs(y = 'Proportion', x = 'experiment_type') +
+  #theme(
+  #  axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+  #  legend.position = 'none'
+  #)
+#
+#p_prop
 ```
 
 ### Put the panels together
