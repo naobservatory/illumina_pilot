@@ -16,14 +16,12 @@ editor_options:
     wrap: 72
 ---
 
-#you can set knitr option for each individual chunk. Might be good to
-remove output of certain chunks. e.g. message = TRUE and warning = FALSE
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
   echo = TRUE,
   cache = TRUE,
   warning=FALSE,
+  code_folding = TRUE,
   autodep = TRUE,
   cache.comments = FALSE,
   dpi = 300
@@ -31,6 +29,15 @@ knitr::opts_chunk$set(
 ```
 
 # Background
+
+Todo:
+
+-   Seperate data import + cleaning in a different Rmd
+
+-   Make a data dictionary
+
+-   Clean metadata (add character types, make snake_case, replace null
+    with NA, separate Notes column)
 
 Here I will analyze initial Illumina runs which were submitted in
 October 2022.
