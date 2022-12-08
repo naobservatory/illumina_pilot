@@ -315,12 +315,32 @@ It will also be interesting to compare groups of samples by their
 experimental protocols. For this, we can add a column to our sample
 metadata, consisting of experimental classes:
 
-!!! Make experiment class assignments robust.
+**QUESTION: How to leftjoin sample_data, matching on experiment_type,
+within the function `mutate_sample_date`**?
 
 ```{r}
+experiment_type <- ps %>% sample_data() %>% 
+  as_tibble() %>% 
+  pull(experiment_type)
+
 experiment_class <- c("peg_preciptation", "peg_preciptation", "ceres",
-                         "peg_preciptation", "ceres", "ceres", "amicon",
-                         "peg_preciptation", "amicon", "ceres", "amicon", "amicon")
+                      "peg_preciptation", "ceres", "ceres", 
+                      "amicon","peg_preciptation", "amicon", 
+                      "ceres", "amicon", "amicon") %>% 
+  sort()
+
+experiment_type <- c("P1", "P2" ,"CU-C" ,
+                     "P3", "CU2", "CF", 
+                     "A3", "P-C", "A-C", 
+                     "CU1", "A1","A2") %>% 
+  sort()
+
+
+experiment_class_type <- tibble(experiment_class, experiment_type)
+
+
+
+mutate_sample_data
 
 ps <- ps %>%
   mutate_sample_data(
@@ -349,7 +369,7 @@ sam %>%
   geom_histogram()
 ```
 
-**QUESTION:** Can we walk through the code below + potentially fix it?
+#### **QUESTION:** Can we walk through the code below + potentially fix it?
 
 ```{r}
 taxon_stats <- ps %>%
@@ -494,6 +514,8 @@ eukaryota_sums <- abun_subset_ps %>%
   sample_sums(.)
 ```
 
+Now we can display the sample sums for all superkingdoms:
+
 ```{r}
 
 rownames <- c("total_sums", "bacteria_sums", "virus_sums", "archaea_sums", "eukaryota_sums")
@@ -509,8 +531,9 @@ mutate(sum_type = rownames)
 superkingdom_absolute_abun
 ```
 
-**QUESTION: How to sort bar plots properly. Also make it looker nicer
-obv.**
+**QUESTION: How to sort bar plots properly.**
+
+**QUESTION: What is the fastest way to make this plot look nicer.**
 
 ```{r}
 abun_table <- abun_subset_ps %>%
@@ -535,7 +558,7 @@ abun_table %>%
 ```
 
 Now we want to display how many sequences made it through the CZID
-pipeline. FOr this we first subsample to larger samples \>10000 and
+pipeline. For this we first subsample to larger samples \>1000 and
 information about the experiment type and the total number of assigned
 reads (`total_reads`)
 
@@ -621,24 +644,26 @@ of](%5Bhttps://journals.asm.org/doi/full/10.1128/AEM.01448-21);](<https://journa
 
 ### Filtering our samples
 
-First we want to filter out some samples and taxa prior to doing some
-downstream analysis.
+For our analyses we want to filter out some samples and taxa prior to
+doing some downstream analysis.
 
-First we remove all samples with very low read counts, here defined as
-under 1000 reads. We would thus exclude all controls and the Ceres
-filtered sample.
+1.  First we remove all samples with very low read counts, here defined
+    as under 1000 reads. We would thus exclude all controls and the
+    Ceres filtered sample.\
 
-```{r}
-ps %>% filter_sample_data(sample_sum < 1e3) %>% sample_data %>% .[["experiment_type"]]
+    ```{r}
+    ps %>% filter_sample_data(sample_sum < 1e3) %>% sample_data %>% .[["experiment_type"]]
 
-```
+    ```
 
--   We also want to subset to just viruses for now (the Rothman analysis
+2.  We also want to subset to just viruses for now (the Rothman analysis
     also only considers viruses)
--   Furthermore we'd like to remove species with under 10 reads, and
+
+3.  Furthermore we'd like to remove species with under 10 reads, and
     those occurring in fewer than 2 samples, which will speed up
     calculations and likely make our results more meaningful since these
     identifications can easily be spurious.
+
     -   Note that this would lead to the inclusion of samples that have
         zero (!) reads, as some of the control samples only have 2 reads
         per species.
@@ -716,7 +741,7 @@ different, equally abundant species. Let's take a closer look at this
 below (code taken from this [blog
 post](https://jonlefcheck.net/2012/10/23/diversity-as-effective-numbers/))
 
-**QUESTION:** Why the `;` after certain commands?
+#### **QUESTION:** Why the `;` after certain commands?
 
 ```{r}
 community1=data.frame(t(rep(1,100))); colnames(community1)=paste("sp",1:100)
@@ -762,13 +787,18 @@ Shannon diversities into "effective number of species", which provide a
 more intuitive account of a population's diversity.
 
 Getting to this effective number is very easy, by taking the exponential
-function (i.e. $$e^x$$) of the Shannon diversity, like so:
+function (i.e. $e^x$) of the Shannon diversity, like so:
+
+First, let's create a population with 100 equally abundant species
 
 ```{r}
-#First, let's create a population with 100 equally abundant species
 community1=data.frame(t(rep(1,100))); colnames(community1)=paste("sp",1:100)
+```
 
-#Then, let's compute the Shannon diversity H1 and the species number S1
+Then, let's compute the Shannon diversity H1 and the species number S1,
+checking if they are the same
+
+```{r}
 H1=diversity(community1,index="shannon"); H1
 S1=specnumber(community1); S1
 
@@ -776,10 +806,16 @@ H1
 exp(H1)
 S1
 H1 == S1
+```
 
-#Finally, let's exponentiate the Shannon diversity, again comparing it to S1.
+Finally, let's exponentiate the Shannon diversity, again comparing it to
+S1.
+
+```{r}
 round(exp(H1)) == S1
 ```
+
+**QUESTION: what is the underlying issue here?**
 
 We had to round H1, as the results of certain types arithemtic are to
 truly identical to a direct representation of the known answer. More on
@@ -850,13 +886,9 @@ p_div <- ps_subset %>%
 p_div
 ```
 
-**QUESTION:** How to create the same plot as above, but plotting the
-absolute number of species present in each sample?
+#### **QUESTION:** How to create the same plot as above, but plotting the absolute number of species present in each sample?
 
 ```{r}
-#ps_subset %>%
-  #as_tibble %>%
-  #with_groups(.sample, ntaxa)
 ```
 
 Note, I'm plotting the data points over the box plots, since it is
@@ -897,6 +929,8 @@ x <- ps_subset %>%
     proportion = .abundance / sum(.abundance))
 ```
 
+#### **QUESTION:** Could we go through this code? The resulting table doesn't look right, hence I'd like to fix this.
+
 Next, get the top 10 viruses by median proportion. We can do this
 various ways, e.g.
 
@@ -927,7 +961,7 @@ identical(top_viruses1, top_viruses2)
 Finally, if we use the top_viruses2 results in the table below we get
 the following table.
 
-**QUESTION:** What is the underlying error here?
+#### **QUESTION:** What is the underlying error here?
 
 ```{r, fig.dim = c(10,5)}
 p_prop <- x %>%
