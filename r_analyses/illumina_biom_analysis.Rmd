@@ -599,38 +599,34 @@ barplot_pipeline %>% mutate(pipeline_stage = factor(pipeline_stage, levels = c("
 
 Superkingdom relative abundances (ratios and proportions)
 
-    -   Compare 'nt' and 'nr' results
+\- Compare 'nt' and 'nr' results
 
-    -   Show how many reads do not have a full taxonomic analysis
+\- Show how many reads do not have a full taxonomic analysis
 
-    -   Of what remains, what is each sequence
+\- Of what remains, what is each sequence
 
-    -   Different types of ordination
+\- Different types of ordination
 
-        -   CPCA -\> do that on super kingdom analysis
+-   CPCA -\\\> do that on super kingdom analysis
 
+\- Compare neg controls to other samples (ordination/distances,
 
+## Recreating the Rothman et al 2021 Figure 4 using Illumina data
 
-    -   Compare neg controls to other samples (ordination/distances,
-        decontam analysis)
+Rothman Figure 4: ([source
+of](%5Bhttps://journals.asm.org/doi/full/10.1128/AEM.01448-21);](<https://journals.asm.org/doi/full/10.1128/AEM.01448-21>);)
+[source](%5Bhttps://github.com/jasonarothman/wastewater_viromics_sarscov2/tree/main/github_R_scripts))](<https://github.com/jasonarothman/wastewater_viromics_sarscov2/tree/main/github_R_scripts>)))
 
-    ## Recreating the Rothman et al 2021 Figure 4 using Illumina data
+![](images/paste-58683FF7.png)
 
-    Rothman Figure 4: ([source of
-    paper](https://journals.asm.org/doi/full/10.1128/AEM.01448-21); [source
-    of R
-    code](https://github.com/jasonarothman/wastewater_viromics_sarscov2/tree/main/github_R_scripts))
+### Filtering our samples
 
-    ![](images/paste-58683FF7.png)
+First we want to filter out some samples and taxa prior to doing some
+downstream analysis.
 
-    ### Filtering our samples
-
-    Prep: Note, it is often helpful to filter out some samples and taxa
-    prior to doing some downstream analysis.
-
-    -   First we remove all samples with very low read counts, here defined
-        as under 1000 reads. We would thus exclude all controls and the
-        Ceres filtered sample.
+First we remove all samples with very low read counts, here defined as
+under 1000 reads. We would thus exclude all controls and the Ceres
+filtered sample.
 
 ```{r}
 ps %>% filter_sample_data(sample_sum < 1e3) %>% sample_data %>% .[["experiment_type"]]
