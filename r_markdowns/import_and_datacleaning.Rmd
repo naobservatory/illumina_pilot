@@ -1,5 +1,5 @@
 ---
-title: "Illumina .biom analysis"
+title: "Date Import and Cleaning"
 author:
   - name: Simon Grimm
     url: {}
@@ -11,6 +11,8 @@ output:
   html_document:
     self_contained: true
     toc: true
+    toc_flot: true
+    code_folding: false
 editor_options:
   markdown:
     wrap: 72
@@ -21,7 +23,6 @@ knitr::opts_chunk$set(
   echo = TRUE,
   cache = TRUE,
   warning=FALSE,
-  code_folding = TRUE,
   autodep = TRUE,
   cache.comments = FALSE,
   dpi = 300
@@ -39,8 +40,8 @@ Todo:
 -   Clean metadata (add character types, make snake_case, replace null
     with NA, separate Notes column)
 
-Here I will analyze initial Illumina runs which were submitted in
-October 2022.
+Here I will import and clean all data required to analyze initial
+Illumina runs which were submitted in October 2022.
 
 We will work with [.biom files](https://biom-format.org/), acquired from
 a CZID analysis of our data (link
@@ -51,6 +52,10 @@ you do not have access)
 # Introduction
 
 ### R packages
+
+```{r}
+install.packages("TidyMultiqc")
+```
 
 We start by loading all required R packages:
 
@@ -63,6 +68,9 @@ library(fs)
 
 # specifying locations within a project
 library(here)
+
+#Fastqc & Multiqc helpers
+library(TidyMultiqc)
 
 # microbiome analysis helpers
 library(biomformat)
@@ -115,7 +123,7 @@ reading in the file with a JSON parser.
 biom_json <- path(illumina_data_path,
   '2022_11_14_Illumina_pilot_nt_r.biom') %>%
   jsonlite::read_json()
-biom_json %>% head(9)
+biom_json %>% head(7)
 ```
 
 We can fix the file by changing the type from 'Table' to something
@@ -148,7 +156,7 @@ The above chunk reads in the BIOM file's contents as a single string,
 checks that '"Table"' appears only once (in the field where it is set as
 the type), then replaces it with '"Taxon table"'), then writes the
 string as a new BIOM file. We should now be able to load the corrected
-BIOM file with the biomformat package,
+BIOM file with the `biomformat` package,
 
 ```{r}
 biom <- path(illumina_data_path, '2022_11_14_Illumina_pilot_nt_r_fixed.biom') %>% read_biom() %>%
@@ -194,14 +202,24 @@ ids, and the taxonomy information is stored as a list. Notice how all
 the variable names are in snake case except for one. This is apparently
 because the CZID BIOM exports its own standard variables as snake case
 (though shows them otherwise in the online interface), but leaves custom
-variables unchanged. **It is convenient to standardize all variable
-names to snake case**; an easy way to do this is with the function
-`janitor::clean_names()`.
+variables unchanged. \
+It is convenient to standardize all variable names to snake case; an
+easy way to do this is with the function `janitor::clean_names()`.
 
 ```{r}
 sam <- sam %>%
   janitor::clean_names() %>%
   glimpse
+```
+
+#### Additional Metadata
+
+We can now also add some additional metadata to our sample metadata.
+First we attach metadata acquired through analyses that weren't
+performed by CZID, such as FASTQC analyses.
+
+```{r}
+
 ```
 
 Next, the taxonomy table, or what the biomformat package calls the
@@ -216,10 +234,6 @@ Note, when using glimpse we observe that taxonomy level 2 (under
 tax <- biom %>% observation_metadata()
 tax %>% class
 tax %>% glimpse()
-```
-
-```{r}
-?biomformat::observation_metadata
 ```
 
 We can see that here we have a list, with one element per taxon. The
@@ -256,13 +270,14 @@ down by different taxa levels:
 glimpse(as_tibble(tax[1:3, 2:9]))
 ```
 
-To facilitate downstream analysis, it is helpful to so some cleanup:
+To facilitate downstream analysis, it is helpful to clean up some of the
+taxonomic labels.
 
--   Replace the taxonomic ranks with the standard NCBI rank names (see
+1.  Replace the taxonomic ranks with the standard NCBI rank names (see
     an example [NCBI taxonomic
     record](https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=9606))
--   In cases where the rank is missing/unassigned, replace the empty
-    string with NA <!--  -->
+2.  In cases where the rank is missing/unassigned, replace the empty
+    string with NA.
 
 ```{r}
 rnks <- c('superkingdom', 'kingdom', 'phylum', 'class', 'order', 'family',
@@ -292,6 +307,8 @@ ps <- phyloseq(
 Note that we had to first coerce the abundance matrix to a standard
 dense matrix; we also needed to tell phyloseq that taxa corresponded to
 rows in the matrix.
+
+#### 
 
 # Basic data checks and stats
 
