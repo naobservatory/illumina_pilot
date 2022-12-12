@@ -112,8 +112,6 @@ biom_data_path <- here("data")
 multiqc_data_path <- here("data/fastqc_analyses/multiqc_reports/multiqc_data")
 metadata_data_path <- here("metadata")
 output_data_path <- here("output")
-dir_ls(multiqc_data_path) %>% path_file
-
 ```
 
 ## Data import
