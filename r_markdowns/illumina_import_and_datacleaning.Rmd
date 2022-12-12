@@ -8,13 +8,14 @@ description: |
 categories:
 draft: false
 output:
-  html_document:
-    self_contained: true
-    toc: true
-    toc_flot: true
+  bookdown::html_document2:
+    toc: yes
+    toc_float: yes
+    toc_collapsed: yes
+    df_print: paged
     code_folding: show
+    theme: lumen 
     warning: false
-    
 editor_options:
   markdown:
     wrap: 72
@@ -35,8 +36,6 @@ knitr::opts_chunk$set(
 # Background
 
 Todo:
-
--   Seperate data import + cleaning in a different Rmd
 
 -   Make a data dictionary
 
@@ -81,7 +80,7 @@ library(cowplot)
 library(patchwork)
 library(ggbeeswarm)
 
-theme_set(theme_cowplot())
+theme_set(theme_minimal())
 ```
 
 We then set the folder containing the `.biom` file as our `here`
@@ -136,8 +135,6 @@ valid. It doesn't actually matter what we use:
 > that use BIOM files to determine the data type, if desired. (Caption
 > for Additional file 5 in @mcdonald2012theb)
 
-<https://academic.oup.com/gigascience/article/1/1/2047-217X-1-7/2656152>
-
 For now, let's use 'Taxon table'.
 
 ```{r}
@@ -176,9 +173,9 @@ The abundance (count) matrix, sample metadata table, and taxonomy table
 can be extracted with three corresponding functions functions from the
 biomformat package.
 
-We'll tackle these one at a time. First, the abundance matrix.
-
 ## Abundance matrix
+
+We'll tackle these one at a time. First, the abundance matrix.
 
 ```{r}
 abun <- biom %>% biom_data()
@@ -282,7 +279,7 @@ sam %>% select(notes)
 Next, the taxonomy table, or what the biomformat package calls the
 'observation metadata'.
 
-### Taxonomy table
+## Taxonomy table
 
 Note, when using glimpse we observe that taxonomy level 2 (under
 'Bacteria') is blank. Might be worth investigating why that is.
@@ -556,5 +553,3 @@ phyloseq object) into an RDS file.
 saveRDS(ps, here(output_data_path, "2022_12_08_illumina_phyloseq.Rds"))
 
 ```
-
-# 

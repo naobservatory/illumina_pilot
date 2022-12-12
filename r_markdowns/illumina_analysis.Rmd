@@ -8,9 +8,14 @@ description: |
 categories:
 draft: false
 output:
-  html_document:
-    self_contained: true
-    toc: true
+  bookdown::html_document2:
+    toc: yes
+    toc_float: yes
+    toc_collapsed: yes
+    df_print: paged
+    code_folding: show
+    theme: lumen 
+    warning: false
 editor_options:
   markdown:
     wrap: 72
@@ -30,6 +35,11 @@ knitr::opts_chunk$set(
 ```
 
 # Analysis
+
+TODO:
+
+-   Fix `experiment_class` assignment + reactivate code including the
+    former.
 
 ## R packages
 
@@ -118,6 +128,14 @@ eukaryota_sums <- abun_subset_ps %>%
   sample_sums(.)
 ```
 
+```{r}
+superkingdoms <- ps %>%
+  tax_glom('superkingdom') %>%
+  as_tibble
+
+?tax_glom
+```
+
 Now we can display the sample sums for all superkingdoms:
 
 ```{r}
@@ -167,7 +185,7 @@ information about the experiment type and the total number of assigned
 reads (`total_reads`)
 
 ```{r}
-sample_pipeline <- read.csv (path(metadata_data_path, "2022_12_01_czid_sample_overview.csv"), header = TRUE)
+sample_pipeline <- read.csv (path(biom_data_path, "2022_12_01_czid_sample_overview.csv"), header = TRUE)
 
 large_samples_pipeline <- sample_pipeline %>%
   filter(total_reads > 1e4)
@@ -475,19 +493,17 @@ then create the plot, using the effective number of species, by
 exponentiating the Shannon index
 
 ```{r}
-p_div <- ps_subset %>%
-  sample_data %>%
-  ggplot(aes(y = exp(shannon_index), x = experiment_class,
-      color = experiment_class)) +
-  geom_boxplot(outlier.shape = NA) +
-  geom_quasirandom() +
-  expand_limits(y = c(0,160)) +
-  labs(x = 'Experiment Class', y = 'Effective Number of Viral Species') +
-  theme(
-    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
-    legend.position = 'none'
-  )
-p_div
+#p_div <- ps_subset %>%
+#  sample_data %>%
+#  ggplot(aes(y = exp(shannon_index), x = experiment_class,
+#  geom_quasirandom() +
+#  expand_limits(y = c(0,160)) +
+#  labs(x = 'Experiment Class', y = 'Effective Number of Viral #Species') +
+#  theme(
+#    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+#    legend.position = 'none'
+#  )
+#p_div
 ```
 
 #### **QUESTION:** How to create the same plot as above, but plotting the absolute number of species present in each sample?
@@ -506,13 +522,13 @@ effective number of species.
 Now we can also redo our ordination, labeling by 'experiment_class'.
 
 ```{r}
-nmds <- ps_subset %>%
-  speedyseq::transform_sample_counts(~ . / sum(.)) %>%
-  ordinate(method = "NMDS", distance = "bray", trymax = 50)
-p_ord <- plot_ordination(ps_subset, nmds,
-                         color = "experiment_class", type = "samples" ) +
-  labs(color = 'experiment_class')
-p_ord
+#nmds <- ps_subset %>%
+#  speedyseq::transform_sample_counts(~ . / sum(.)) %>%
+#  ordinate(method = "NMDS", distance = "bray", trymax = 50)
+#p_ord <- plot_ordination(ps_subset, nmds,
+#                         color = "experiment_class", type = "samples" ) +
+#  labs(color = 'experiment_class')
+#p_ord
 ```
 
 ### Relative abundances (Proportions) (Panel C)
@@ -594,8 +610,8 @@ Putting multiple panels together is often very easy with the patchwork
 package loaded,
 
 ```{r, fig.dim = c(10,10)}
-(p_ord + p_div) / p_prop +
-  plot_annotation(tag_levels = 'A')
+#(p_ord + p_div) / p_prop +
+#  plot_annotation(tag_levels = 'A')
 ```
 
 This plot could definitely benefit from some extra fiddling, to adjust
