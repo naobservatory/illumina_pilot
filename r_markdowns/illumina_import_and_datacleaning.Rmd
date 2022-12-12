@@ -55,6 +55,14 @@ TODO:
         combined the forward and reverse (R1 & R2) of each sample into
         one common sample.
 
+-   Convert is_enriched to a logical with as.logical. for it to be 0/1
+    in the raw data, though probably should be numeric rather than
+    integer upon reading in - discuss this
+
+-   Work through (and potentially fix) taxon_stats table creation
+
+\
+
 Here I will import and clean all data required to analyze initial
 Illumina runs which were submitted in October 2022.
 
@@ -73,6 +81,7 @@ We start by loading all required R packages:
 ```{r}
 # set of data analysis and viz tools
 library(tidyverse)
+library(knitr)
 
 # file system helpers
 library(fs)
@@ -206,6 +215,8 @@ package. That is fine for now, though phyloseq will want a standard
 sam <- biom %>% sample_metadata()
 sam %>% class
 sam %>% glimpse
+
+kable(sam)
 ```
 
 The sample metadata is a standard data frame with rownames giving sample
@@ -497,12 +508,8 @@ If we look at [this taxon in NCBI
 taxonomy](https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=1263047),
 we can see that NCBI has adopted the new phylum name 'Bacteroidota';
 however, here we see the old phylum name. This suggests that CZID is
-currently using an older version of NCBI prior to the name change.
-
-see -
-<https://ncbiinsights.ncbi.nlm.nih.gov/2021/12/10/ncbi-taxonomy-prokaryote-phyla-added/> -
-<https://www.the-scientist.com/news-opinion/newly-renamed-prokaryote-phyla-cause-uproar-69578>
-<!--  -->
+currently using an older version of NCBI [prior to the name
+change](https://ncbiinsights.ncbi.nlm.nih.gov/2021/12/10/ncbi-taxonomy-prokaryote-phyla-added/).
 
 We can now also look at the fraction of each taxa level which is
 classified. In total there are 12447 classified species:

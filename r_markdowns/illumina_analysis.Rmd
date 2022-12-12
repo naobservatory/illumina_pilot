@@ -36,10 +36,45 @@ knitr::opts_chunk$set(
 
 # Analysis
 
-TODO:
+## TODOS:
+
+### Fixes
 
 -   Fix `experiment_class` assignment + reactivate code including the
     former.
+
+-   Turn pipeline plot into line plot, without faceting
+
+-   Fix labeling issues
+
+-   Use factors to change order in categorical data - relevant for
+    sorting bar plots along different categories, such as
+    `experiment_class`
+
+    -   Refer to these links: [forcats
+        package](https://forcats.tidyverse.org/), [R for Data Science -
+        Factors](https://r4ds.had.co.nz/factors.html#modifying-factor-order)
+
+-   Drop the step of calculating abundances in an arduou way, instead
+    working with tax_glom
+
+-   Fix `top_viruses1` code. The resulting table doesn't look right,
+    hence I'd like to fix this.
+
+-   Discuss with Mike about "`experiment_type` not being a useful var
+    since every sample has a different value"
+
+### Additions
+
+-   Show how many reads do not have a full taxonomic analysis
+
+    \- Of what remains, what is each sequence
+
+-   Do further types of ordination
+
+    -   CPCA (?) -\> do that on super kingdom analysis
+
+-   Compare neg controls to other samples (ordination/distances,
 
 ## R packages
 
@@ -132,8 +167,6 @@ eukaryota_sums <- abun_subset_ps %>%
 superkingdoms <- ps %>%
   tax_glom('superkingdom') %>%
   as_tibble
-
-?tax_glom
 ```
 
 Now we can display the sample sums for all superkingdoms:
@@ -242,21 +275,7 @@ barplot_pipeline %>% mutate(pipeline_stage = factor(pipeline_stage, levels = c("
 
 ```
 
-Superkingdom relative abundances (ratios and proportions)
-
-\- Compare 'nt' and 'nr' results
-
-\- Show how many reads do not have a full taxonomic analysis
-
-\- Of what remains, what is each sequence
-
-\- Different types of ordination
-
--   CPCA -\\\> do that on super kingdom analysis
-
-\- Compare neg controls to other samples (ordination/distances,
-
-## Recreating the Rothman et al 2021 Figure 4 using Illumina data
+## Recreating the Rothman et al 2021 Figure 4 using our data
 
 Rothman Figure 4: ([source
 of](%5Bhttps://journals.asm.org/doi/full/10.1128/AEM.01448-21);](<https://journals.asm.org/doi/full/10.1128/AEM.01448-21>);)
@@ -363,10 +382,10 @@ different, equally abundant species. Let's take a closer look at this
 below (code taken from this [blog
 post](https://jonlefcheck.net/2012/10/23/diversity-as-effective-numbers/))
 
-#### **QUESTION:** Why the `;` after certain commands?
+#### 
 
 ```{r}
-community1=data.frame(t(rep(1,100))); colnames(community1)=paste("sp",1:100)
+community1=data.frame(t(rep(1,100))); colnames(community1)=paste("sp",1:100) #The `;` seperates two commands that would normally need be in different lines.
 community2=data.frame(t(rep(1,200))); colnames(community2)=paste("sp",1:200)
 
 S1=specnumber(community1); S1
@@ -437,7 +456,7 @@ S1.
 round(exp(H1)) == S1
 ```
 
-**QUESTION: what is the underlying issue here?**
+**QUESTION: what is the exact underlying issue here?**
 
 We had to round H1, as the results of certain types arithemtic are to
 truly identical to a direct representation of the known answer. More on
@@ -506,11 +525,6 @@ exponentiating the Shannon index
 #p_div
 ```
 
-#### **QUESTION:** How to create the same plot as above, but plotting the absolute number of species present in each sample?
-
-```{r}
-```
-
 Note, I'm plotting the data points over the box plots, since it is
 useful to see the scatter when we're working with a relatively small
 number of points like this.
@@ -549,7 +563,7 @@ x <- ps_subset %>%
     proportion = .abundance / sum(.abundance))
 ```
 
-#### **QUESTION:** Could we go through this code? The resulting table doesn't look right, hence I'd like to fix this.
+#### **QUESTION:** 
 
 Next, get the top 10 viruses by median proportion. We can do this
 various ways, e.g.
@@ -580,8 +594,6 @@ identical(top_viruses1, top_viruses2)
 
 Finally, if we use the top_viruses2 results in the table below we get
 the following table.
-
-#### **QUESTION:** What is the underlying error here?
 
 ```{r, fig.dim = c(10,5)}
 #p_prop <- x %>%
