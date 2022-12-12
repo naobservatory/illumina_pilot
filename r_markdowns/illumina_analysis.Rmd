@@ -106,7 +106,7 @@ library(ggbeeswarm)
 ### Defining directories
 
 ```{r}
-biom_data_path <- here("data")
+biom_data_path <- here("data/czid")
 multiqc_data_path <- here("data/fastqc_analyses/multiqc_reports/multiqc_data")
 metadata_data_path <- here("metadata")
 output_data_path <- here("output")
@@ -117,8 +117,11 @@ output_data_path <- here("output")
 ```{r}
 ps <- readRDS(here(output_data_path, "2022_12_08_illumina_phyloseq.Rds"))
 
-sample_pipeline <- read.csv (path(biom_data_path, "2022_12_01_czid_sample_overview.csv"),
-                             header = TRUE)
+# readr package to read in csv files
+sample_pipeline <- read_csv(path(biom_data_path, "2022_12_01_czid_sample_overview.csv")) %>%
+  janitor::clean_names() %>%
+  # remove unused columns
+  select(where(~!all(is.na(.))))
 ```
 
 ## Assessing CZID pipeline
@@ -140,8 +143,8 @@ ps_sample_type_and_sum <- ps %>%
   select(experiment_type, experiment_class, sample_sum)
 
 sample_pipeline_subset <- sample_pipeline_subset %>% 
-  left_join(.,ps_sample_type_and_sum, 
-            by = c("Experiment.Type" = "experiment_type"), 
+  left_join(., ps_sample_type_and_sum, 
+            by = c("experiment_type"), 
             copy = TRUE)
 ```
 
@@ -209,6 +212,64 @@ barplot_pipeline %>%
   theme(axis.text.x = element_text(angle = 0, vjust=0.6)) +
   scale_y_log10() 
 ```
+
+
+#### Pair programming
+
+```{r}
+lvls <- c("total", "star", "trimmomatic", "priceseq", "czid_dedup", "assigned")
+
+#> reads_after_star
+#> reads_after_trimmomatic
+#> reads_after_priceseq
+#> reads_after_czid_dedup
+
+sample_pipeline_plot <- sample_pipeline_subset %>% 
+  #> filter(total_reads > 1e4) %>%
+  mutate(
+    reads_after_total = total_reads,
+    reads_after_assigned = sample_sum,
+  ) %>%
+  pivot_longer(
+    starts_with('reads_after_'),
+    names_to = "pipeline_stage",
+    values_to = "reads"
+  ) %>%
+  mutate(
+    across(pipeline_stage, str_replace_all, 
+      pattern = "reads_after_", replacement = ""),
+    across(pipeline_stage, factor, levels = lvls),
+  ) %>%
+  glimpse
+
+sample_pipeline_plot %>% select(sample_name, pipeline_stage, reads)
+
+sample_pipeline_plot %>%
+  ggplot(aes(x= pipeline_stage, y = reads, 
+             group = sample_name, 
+             color = experiment_class)) +
+  geom_line() +
+  expand_limits(y = 0) +
+  # scale_y_log10() +
+  theme_cowplot() +
+  theme(axis.text.x = element_text(angle = 0, vjust=0.6))
+    # breaks = c(),
+    # labels = c(),
+```
+
+
+```{r}
+p <- sample_pipeline_plot %>%
+  ggplot(aes(x= pipeline_stage, y = reads, 
+             group = sample_name, 
+             color = experiment_class)) +
+  geom_line() +
+  theme_cowplot() +
+  theme(axis.text.x = element_text(angle = 0, vjust=0.6))
+
+(p + expand_limits(y = 0)) / (p + scale_y_log10())
+```
+
 
 ## Taxonomic composition overview
 
