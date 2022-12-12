@@ -81,7 +81,6 @@ We start by loading all required R packages:
 ```{r}
 # set of data analysis and viz tools
 library(tidyverse)
-library(knitr)
 
 # file system helpers
 library(fs)
@@ -101,8 +100,6 @@ library(vegan)
 library(cowplot)
 library(patchwork)
 library(ggbeeswarm)
-
-theme_set(theme_minimal())
 ```
 
 ## Defining directories

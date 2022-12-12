@@ -40,8 +40,6 @@ knitr::opts_chunk$set(
 
 ### Fixes
 
--   
-
 -   Turn pipeline plot into line plot, without faceting
 
 -   Fix labeling issues
@@ -54,7 +52,7 @@ knitr::opts_chunk$set(
         package](https://forcats.tidyverse.org/), [R for Data Science -
         Factors](https://r4ds.had.co.nz/factors.html#modifying-factor-order)
 
--   Drop the step of calculating abundances in an arduou way, instead
+-   Drop the step of calculating abundances in an arduous way, instead
     working with tax_glom
 
 -   Fix `top_viruses1` code. The resulting table doesn't look right,
@@ -82,7 +80,6 @@ knitr::opts_chunk$set(
 Loading our required R packages.
 
 ```{r}
-
 # set of data analysis and viz tools
 library(tidyverse)
 
@@ -113,75 +110,104 @@ biom_data_path <- here("data")
 multiqc_data_path <- here("data/fastqc_analyses/multiqc_reports/multiqc_data")
 metadata_data_path <- here("metadata")
 output_data_path <- here("output")
-dir_ls(multiqc_data_path) %>% path_file
 ```
 
 ### Loading our data
 
 ```{r}
 ps <- readRDS(here(output_data_path, "2022_12_08_illumina_phyloseq.Rds"))
+
+sample_pipeline <- read.csv (path(biom_data_path, "2022_12_01_czid_sample_overview.csv"),
+                             header = TRUE)
 ```
 
 ## Assessing CZID pipeline
 
-Now we want to display how many sequences made it through the CZID
-pipeline. For this we again subsample to larger samples (reads \>1000).
-We can also add information about the experiment class and the total
-number of assigned reads (`total_reads`)
+Our goal here is to analyze our 12 samples in more detail. For this, we
+first need to understand how CZID arrived at the samples we are using
+here. For this, we can display how many sequences made it through the
+various steps of the CZID pipeline. For this we again subsample to
+larger samples (reads \>1000). We can also add information about the
+experiment class and the total number of assigned reads (`total_reads`)
 
 ```{r}
-sample_pipeline <- read.csv (path(biom_data_path, "2022_12_01_czid_sample_overview.csv"), header = TRUE)
-
 sample_pipeline_subset <- sample_pipeline %>%
   filter(total_reads > 1e4)
 
 ps_sample_type_and_sum <- ps %>% 
   sample_data() %>% 
   as_tibble() %>% 
-  select(experiment_type, sample_sum)
+  select(experiment_type, experiment_class, sample_sum)
 
-sample_pipeline_subset <- sample_pipeline_subset %>% left_join(.,ps_sample_type_and_sum, by = c("Experiment.Type" = "experiment_type"), copy = TRUE)
-
-
+sample_pipeline_subset <- sample_pipeline_subset %>% 
+  left_join(.,ps_sample_type_and_sum, 
+            by = c("Experiment.Type" = "experiment_type"), 
+            copy = TRUE)
 ```
 
-```{r}
+After adding metadata to our `sample_pipeline_subset` table, we can now
+take a closer look at the various steps in the CZID pipeline.
 
+```{r}
 #Subsetting dataframe for visualization
 
-barplot_pipeline <- large_samples_pipeline %>% select(sample_name, total_reads, reads_after_star, reads_after_trimmomatic, reads_after_priceseq, reads_after_czid_dedup, sample_sum,sample_name)
+pipeline <- sample_pipeline_subset %>% 
+  select(sample_name,
+         experiment_class,
+         total_reads, 
+         reads_after_star, 
+         reads_after_trimmomatic,
+         reads_after_priceseq, 
+         reads_after_czid_dedup, 
+         sample_sum,sample_name)
 
 #Pivoting dataframe
 
-barplot_pipeline <- barplot_pipeline %>% as_tibble %>%
-  pivot_longer(c('total_reads', 'reads_after_star', 'reads_after_trimmomatic','reads_after_priceseq', 'reads_after_czid_dedup', 'sample_sum'),
+pipeline_pivoted <- pipeline %>% 
+  as_tibble %>%
+  pivot_longer(!c("sample_name", "experiment_class"),
                names_to = "pipeline_stage", values_to = "reads")
 
-#Editing labels
-
-barplot_pipeline <- barplot_pipeline %>%
+barplot_pipeline <- pipeline_pivoted %>%
   mutate_if(is.character,
             str_replace_all,
             pattern = "reads_after_",
             replacement = "") %>%
   mutate_if(is.character,
-          str_replace_all,
-          pattern = "sample_sum",
-          replacement = "assigned") %>%
+            str_replace_all,
+            pattern = "sample_sum",
+            replacement = "assigned") %>%
   mutate_if(is.character,
-          str_replace_all,
-          pattern = "_reads",
-          replacement = "")
+            str_replace_all,
+            pattern = "_reads",
+            replacement = "")
 
-#Recoloring barplot_pipeline to make it look nicer
 
-barplot_pipeline %>% mutate(pipeline_stage = factor(pipeline_stage, levels = c("total", "star", "trimmomatic", "priceseq", "czid_dedup", "assigned"))) %>%
+#Recoloring barplot_pipeline_pivoted to make it look nicer
+
+barplot_pipeline %>% 
+  mutate(pipeline_stage = factor(pipeline_stage, 
+                                 levels = c("total", "star", 
+                                            "trimmomatic", "priceseq", 
+                                            "czid_dedup", "assigned"))) %>%
   ggplot(aes(x= pipeline_stage, y = reads)) +
   geom_col() +
   facet_wrap(~ sample_name) +
   theme(axis.text.x = element_text(angle = 45, vjust=0.6)) +
   scale_y_log10()
 
+
+barplot_pipeline %>% 
+  mutate(pipeline_stage = factor(pipeline_stage, 
+                                 levels = c("total", "star", 
+                                            "trimmomatic", "priceseq", 
+                                            "czid_dedup", "assigned"))) %>%
+  ggplot(aes(x= pipeline_stage, y = reads, 
+             group = sample_name, 
+             color = experiment_class)) +
+  geom_path() +
+  theme(axis.text.x = element_text(angle = 0, vjust=0.6)) +
+  scale_y_log10() 
 ```
 
 ## Taxonomic composition overview
@@ -212,9 +238,8 @@ abun_table <- abun_subset_ps %>%
   ungroup()
 ```
 
-```{r}
-abun_table %>% select(experiment_type, sample_sum) %>% kable
-```
+Now, we can plot superkingdom abundances both in absolute and in
+relative terms.
 
 ```{r}
 abun_table %>%
@@ -243,7 +268,7 @@ doing some downstream analysis.
 
 1.  First we remove all samples with very low read counts, here defined
     as under 1000 reads. We would thus exclude all controls and the
-    Ceres filtered sample.\
+    Ceres filtered sample, as shown here:\
 
     ```{r}
     ps %>% filter_sample_data(sample_sum < 1e3) %>% sample_data %>% .[["experiment_type"]]
@@ -251,7 +276,11 @@ doing some downstream analysis.
     ```
 
 2.  We also want to subset to just viruses for now (the Rothman analysis
-    also only considers viruses)
+    also only considers viruses). **Note that this reduces the overall
+    sample size of the Ceres samples by a lot**, as these samples mostly
+    consist of bacteria:\
+    \
+    ![](images/paste-ED3771CE.png){width="463"}
 
 3.  Furthermore we'd like to remove species with under 10 reads, and
     those occurring in fewer than 2 samples, which will speed up
@@ -465,17 +494,19 @@ then create the plot, using the effective number of species, by
 exponentiating the Shannon index
 
 ```{r}
-#p_div <- ps_subset %>%
-#  sample_data %>%
-#  ggplot(aes(y = exp(shannon_index), x = experiment_class,
-#  geom_quasirandom() +
-#  expand_limits(y = c(0,160)) +
-#  labs(x = 'Experiment Class', y = 'Effective Number of Viral #Species') +
-#  theme(
-#    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
-#    legend.position = 'none'
-#  )
-#p_div
+p_div <- ps_subset %>%
+  sample_data %>%
+  ggplot(aes(y = exp(shannon_index), x = experiment_class,
+  geom_quasirandom() +
+  expand_limits(y = c(0,160)) +
+  labs(x = 'Experiment Class', y = 'Effective Number of Viral #Species') +
+  theme(
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+    legend.position = 'none'
+  )
+)
+)
+p_div
 ```
 
 Note, I'm plotting the data points over the box plots, since it is
@@ -489,13 +520,13 @@ effective number of species.
 Now we can also redo our ordination, labeling by 'experiment_class'.
 
 ```{r}
-#nmds <- ps_subset %>%
-#  speedyseq::transform_sample_counts(~ . / sum(.)) %>%
-#  ordinate(method = "NMDS", distance = "bray", trymax = 50)
-#p_ord <- plot_ordination(ps_subset, nmds,
-#                         color = "experiment_class", type = "samples" ) +
-#  labs(color = 'experiment_class')
-#p_ord
+nmds <- ps_subset %>%
+  speedyseq::transform_sample_counts(~ . / sum(.)) %>%
+  ordinate(method = "NMDS", distance = "bray", trymax = 50)
+p_ord <- plot_ordination(ps_subset, nmds,
+                         color = "experiment_class", type = "samples" ) +
+  labs(color = 'experiment_class')
+p_ord
 ```
 
 ### Relative abundances (Proportions) (Panel C)
@@ -549,24 +580,24 @@ Finally, if we use the top_viruses2 results in the table below we get
 the following table.
 
 ```{r, fig.dim = c(10,5)}
-#p_prop <- x %>%
- # filter(.otu %in% top_viruses2) %>%
-  #mutate(
-   # across(genus, fct_reorder, proportion, .fun = median, .desc = TRUE),
-  #) %>%
-  #ggplot(aes(x = experiment_type, y = proportion,
-  #    color = experiment_class)) +
-  #facet_wrap(~genus, nrow = 2, scales = 'free_y') +
-  #scale_y_log10() +
-  #geom_boxplot() +
-  #geom_jitter() +
-  #labs(y = 'Proportion', x = 'experiment_type') +
-  #theme(
-  #  axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
-  #  legend.position = 'none'
-  #)
-#
-#p_prop
+p_prop <- x %>%
+  filter(.otu %in% top_viruses2) %>%
+  mutate(
+    across(genus, fct_reorder, proportion, .fun = median, .desc = TRUE),
+  ) %>%
+  ggplot(aes(x = experiment_type, y = proportion,
+      color = experiment_class)) +
+  facet_wrap(~genus, nrow = 2, scales = 'free_y') +
+  scale_y_log10() +
+  geom_boxplot() +
+  geom_jitter() +
+  labs(y = 'Proportion', x = 'experiment_type') +
+  theme(
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+    legend.position = 'none'
+)
+
+p_prop
 ```
 
 ### Put the panels together
@@ -575,8 +606,8 @@ Putting multiple panels together is often very easy with the patchwork
 package loaded,
 
 ```{r, fig.dim = c(10,10)}
-#(p_ord + p_div) / p_prop +
-#  plot_annotation(tag_levels = 'A')
+(p_ord + p_div) / p_prop +
+  plot_annotation(tag_levels = 'A')
 ```
 
 This plot could definitely benefit from some extra fiddling, to adjust
