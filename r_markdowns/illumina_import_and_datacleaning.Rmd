@@ -35,7 +35,16 @@ knitr::opts_chunk$set(
 
 # Background
 
-TODO:
+Here I will import and clean all data required to analyze initial
+Illumina runs which were submitted in October 2022.
+
+We will work with [.biom files](https://biom-format.org/), acquired from
+a CZID analysis of our data (link
+[here](https://czid.org/my_data?currentDisplay=table&currentTab=samples&mapSidebarTab=summary&projectId=4788&showFilters=true&showStats=true&updatedAt=2022-10-07T18%3A28%3A46.867Z&workflow=short-read-mngs),
+only available when given access. Reach out to simon\@securebio.org if
+you do not have access)
+
+## TODOs
 
 -   Make a data dictionary.
 
@@ -60,17 +69,6 @@ TODO:
     integer upon reading in - discuss this
 
 -   Work through (and potentially fix) taxon_stats table creation
-
-\
-
-Here I will import and clean all data required to analyze initial
-Illumina runs which were submitted in October 2022.
-
-We will work with [.biom files](https://biom-format.org/), acquired from
-a CZID analysis of our data (link
-[here](https://czid.org/my_data?currentDisplay=table&currentTab=samples&mapSidebarTab=summary&projectId=4788&showFilters=true&showStats=true&updatedAt=2022-10-07T18%3A28%3A46.867Z&workflow=short-read-mngs),
-only available when given access. Reach out to simon\@securebio.org if
-you do not have access)
 
 # Introduction
 
@@ -220,13 +218,9 @@ kable(sam)
 ```
 
 The sample metadata is a standard data frame with rownames giving sample
-ids, and the taxonomy information is stored as a list. Notice how all
-the variable names are in snake case except for one. This is apparently
-because the CZID BIOM exports its own standard variables as snake case
-(though shows them otherwise in the online interface), but leaves custom
-variables unchanged.\
-It is convenient to standardize all variable names to snake case; an
-easy way to do this is with the function `janitor::clean_names()`.
+ids, and the taxonomy information is stored as a list. It is convenient
+to standardize all variable names to snake case; an easy way to do this
+is with the function `janitor::clean_names()`.
 
 ```{r}
 sam <- sam %>%
@@ -237,6 +231,7 @@ sam <- sam %>%
 ### Additional Metadata
 
 We can now also add some additional metadata to our sample metadata.
+Here we first add our FASTQC data.
 
 #### FastQC data
 
@@ -289,7 +284,7 @@ multiqc_data <- TidyMultiqc::load_multiqc(path(multiqc_data_path, 'multiqc_data.
 
 #### Experiment information
 
-**PAIR PROGRAMMING:**
+Cleaner version (TODO)
 
 Finally we want to add understand samples by their experimental
 protocols. For this, we can parse the `notes` column in our sample data:
@@ -298,7 +293,29 @@ protocols. For this, we can parse the `notes` column in our sample data:
 sam %>% select(notes)
 ```
 
-**TO BE DELETED**
+Original, clunky version:
+
+```{r}
+experiment_class <- c("peg_precipitation", "peg_precipitation",
+                      "peg_precipitation","peg_precipitation",
+                      "ceres", "ceres", "ceres", "ceres",
+                      "amicon", "amicon", "amicon", "amicon")
+
+experiment_type <- c("P1", "P2" ,"P3", "P-C",
+                     "CU1","CU2", "CF","CU-C",
+                     "A1","A2","A3","A-C")  
+
+experiment_class_type <- tibble(experiment_class, experiment_type)
+
+```
+
+```{r}
+sam %>% typeof()
+sam <- sam %>% 
+  rownames_to_column(var = "sample_name") %>% 
+  as_tibble %>% 
+  left_join(.,experiment_class_type, by = "experiment_type", copy = TRUE)
+```
 
 Next, the taxonomy table, or what the biomformat package calls the
 'observation metadata'.
@@ -375,22 +392,25 @@ from the `phyloseq` package, and then combining these into one
 phyloseq-class object.
 
 ```{r}
+sam %>% typeof()
+```
+
+### Building the phyloseq object
+
+```{r}
 ps <- phyloseq(
   otu_table(abun %>% as.matrix, taxa_are_rows = TRUE),
   sample_data(sam),
   tax_table(tax)
 )
+
 ```
 
 Note that we had to first coerce the abundance matrix to a standard
 dense matrix; we also needed to tell phyloseq that taxa corresponded to
 rows in the matrix.
 
-#### 
-
 # Basic data checks and stats
-
-(Comments from here on out are by Simon)
 
 Our `phyloseq` object consists of several tables, one of which is our
 sample metadata:
@@ -414,35 +434,6 @@ tax <- ps %>% tax_table %>% as_tibble
 ```
 
 **REPLACE THIS CODE:**
-
-```{r}
-experiment_type <- ps %>% sample_data() %>% 
-  as_tibble() %>% 
-  pull(experiment_type)
-
-experiment_class <- c("peg_preciptation", "peg_preciptation", "ceres",
-                      "peg_preciptation", "ceres", "ceres", 
-                      "amicon","peg_preciptation", "amicon", 
-                      "ceres", "amicon", "amicon") %>% 
-  sort()
-
-experiment_type <- c("P1", "P2" ,"CU-C" ,
-                     "P3", "CU2", "CF", 
-                     "A3", "P-C", "A-C", 
-                     "CU1", "A1","A2") %>% 
-  sort()
-
-
-experiment_class_type <- tibble(experiment_class, experiment_type)
-
-
-
-mutate_sample_data
-
-ps <- ps %>%
-  mutate_sample_data(
-    experiment_class = experiment_class)
-```
 
 ```{r}
 ps %>% t

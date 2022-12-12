@@ -40,8 +40,7 @@ knitr::opts_chunk$set(
 
 ### Fixes
 
--   Fix `experiment_class` assignment + reactivate code including the
-    former.
+-   
 
 -   Turn pipeline plot into line plot, without faceting
 
@@ -76,7 +75,9 @@ knitr::opts_chunk$set(
 
 -   Compare neg controls to other samples (ordination/distances,
 
-## R packages
+## Setup
+
+### R packages
 
 Loading our required R packages.
 
@@ -105,7 +106,7 @@ library(patchwork)
 library(ggbeeswarm)
 ```
 
-Defining our directories
+### Defining directories
 
 ```{r}
 biom_data_path <- here("data")
@@ -115,122 +116,34 @@ output_data_path <- here("output")
 dir_ls(multiqc_data_path) %>% path_file
 ```
 
-## Taxonomic composition overview
-
-Look at the methods used in this paper by Hjelmso et al to find out
-which analyses they have done:
-<https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0170199#sec002>
-
 ### Loading our data
 
 ```{r}
 ps <- readRDS(here(output_data_path, "2022_12_08_illumina_phyloseq.Rds"))
 ```
 
-### **Relative abundances of superkingdoms**
-
-What do I want to compare here? At the end of the day I want to
-agglomerate taxa data on the superkingdom level, for which I can use
-`glom`.
-
-I could then plot samples, displaying their relative shares of Viruses,
-Bacteria, Archea, and Eukaryotes.
-
-First, calculate abundance sums for each sample
-
-```{r}
-abun_subset_ps <- ps %>%
-  filter_sample_data(sample_sum > 1e3) %>%
-  filter_taxa2(~ sum(. > 0) > 2 & sum(.) >= 10)
-
-total_sums <- abun_subset_ps %>%
-  sample_sums(.)
-
-bacteria_sums <- abun_subset_ps %>%
-  filter_tax_table(superkingdom == 'Bacteria') %>%
-  sample_sums(.)
-
-virus_sums <- abun_subset_ps %>%
-  filter_tax_table(superkingdom == 'Viruses') %>%
-  sample_sums(.)
-
-archaea_sums <- abun_subset_ps %>%
-  filter_tax_table(superkingdom == 'Archaea') %>%
-  sample_sums(.)
-
-eukaryota_sums <- abun_subset_ps %>%
-  filter_tax_table(superkingdom == 'Eukaryota') %>%
-  sample_sums(.)
-```
-
-```{r}
-superkingdoms <- ps %>%
-  tax_glom('superkingdom') %>%
-  as_tibble
-```
-
-Now we can display the sample sums for all superkingdoms:
-
-```{r}
-
-rownames <- c("total_sums", "bacteria_sums", "virus_sums", "archaea_sums", "eukaryota_sums")
-
-superkingdom_absolute_abun <- bind_rows(total_sums,
-                                        bacteria_sums,
-                                        virus_sums,
-                                        archaea_sums,
-                                        eukaryota_sums,
-                                        .id = "sum_type") %>%
-mutate(sum_type = rownames)
-
-superkingdom_absolute_abun
-```
-
-**QUESTION: How to sort bar plots properly.**
-
-**QUESTION: What is the fastest way to make this plot look nicer.**
-
-```{r}
-abun_table <- abun_subset_ps %>%
-  tax_glom('superkingdom') %>%
-  as_tibble %>%
-  #arrange(., .experiment_class) %>%
-  group_by(.sample) %>%
-  mutate(proportion = .abundance / sum(.abundance)) %>%
-  ungroup()
-
-abun_table %>%
-  ggplot(aes(x = .sample, y = .abundance, fill = superkingdom)) +
-  geom_col() +
-  scale_x_discrete(labels = abun_table[["experiment_type"]]) +
-  theme(axis.text.x = element_text(angle = 0, vjust=-0.011))
-
-abun_table %>%
-  ggplot(aes(x = .sample, y = .abundance, fill = superkingdom)) +
-  geom_col(position = "fill") +
-  scale_x_discrete(labels = abun_table[["experiment_type"]]) +
-  theme(axis.text.x = element_text(angle = 0, vjust=-0.011))
-```
+## Assessing CZID pipeline
 
 Now we want to display how many sequences made it through the CZID
-pipeline. For this we first subsample to larger samples \>1000 and
-information about the experiment type and the total number of assigned
-reads (`total_reads`)
+pipeline. For this we again subsample to larger samples (reads \>1000).
+We can also add information about the experiment class and the total
+number of assigned reads (`total_reads`)
 
 ```{r}
 sample_pipeline <- read.csv (path(biom_data_path, "2022_12_01_czid_sample_overview.csv"), header = TRUE)
 
-large_samples_pipeline <- sample_pipeline %>%
+sample_pipeline_subset <- sample_pipeline %>%
   filter(total_reads > 1e4)
 
-ps_sample_type_and_sum <- ps %>% sample_data() %>% as_tibble() %>% select(experiment_type, sample_sum)
+ps_sample_type_and_sum <- ps %>% 
+  sample_data() %>% 
+  as_tibble() %>% 
+  select(experiment_type, sample_sum)
 
-large_samples_pipeline <- large_samples_pipeline %>% left_join(.,ps_sample_type_and_sum, by = c("Experiment.Type" = "experiment_type"), copy = TRUE)
+sample_pipeline_subset <- sample_pipeline_subset %>% left_join(.,ps_sample_type_and_sum, by = c("Experiment.Type" = "experiment_type"), copy = TRUE)
 
 
 ```
-
-TODO: Make prettier!
 
 ```{r}
 
@@ -271,8 +184,48 @@ barplot_pipeline %>% mutate(pipeline_stage = factor(pipeline_stage, levels = c("
 
 ```
 
-```{r}
+## Taxonomic composition overview
 
+### **Relative abundances of superkingdoms**
+
+Here we want to plot the absolute and relative abundances of
+superkingdoms, such as Viruses, Bacteria, Archea, and Eukaryotes. We can
+easily calculate abundances at different taxonomic levels, using `glom`.
+
+We will only look at samples with more than 1000 assigned reads (thus
+excluding negative samples and the Ceres filtered sample). Further, we
+drop all taxa that occur in fewer than two samples AND have more than 10
+reads across all samples.
+
+```{r}
+abun_subset_ps <- ps %>%
+  filter_sample_data(sample_sum > 1e3) %>%
+  filter_taxa2(~ sum(. > 0) > 2 & sum(.) >= 10)
+
+
+abun_table <- abun_subset_ps %>%
+  tax_glom('superkingdom') %>%
+  as_tibble %>%
+  #arrange(., .experiment_class) %>%
+  group_by(.sample) %>%
+  mutate(proportion = .abundance / sum(.abundance)) %>%
+  ungroup()
+```
+
+```{r}
+abun_table %>% select(experiment_type, sample_sum) %>% kable
+```
+
+```{r}
+abun_table %>%
+  ggplot(aes(x = experiment_type, y = .abundance, fill = superkingdom)) +
+  geom_col() +
+  theme(axis.text.x = element_text(angle = 0, vjust=-0.011))
+
+abun_table %>%
+  ggplot(aes(x = experiment_type, y = .abundance, fill = superkingdom)) +
+  geom_col(position = "fill") +
+  theme(axis.text.x = element_text(angle = 0, vjust=-0.011))
 ```
 
 ## Recreating the Rothman et al 2021 Figure 4 using our data
@@ -563,7 +516,7 @@ x <- ps_subset %>%
     proportion = .abundance / sum(.abundance))
 ```
 
-#### **QUESTION:** 
+#### **QUESTION:**
 
 Next, get the top 10 viruses by median proportion. We can do this
 various ways, e.g.
