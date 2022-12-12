@@ -33,18 +33,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-# Background
-
-Here I will import and clean all data required to analyze initial
-Illumina runs which were submitted in October 2022.
-
-We will work with [.biom files](https://biom-format.org/), acquired from
-a CZID analysis of our data (link
-[here](https://czid.org/my_data?currentDisplay=table&currentTab=samples&mapSidebarTab=summary&projectId=4788&showFilters=true&showStats=true&updatedAt=2022-10-07T18%3A28%3A46.867Z&workflow=short-read-mngs),
-only available when given access. Reach out to simon\@securebio.org if
-you do not have access)
-
-## TODOs
+# TODOs
 
 -   Make a data dictionary.
 
@@ -70,7 +59,20 @@ you do not have access)
 
 -   Work through (and potentially fix) taxon_stats table creation
 
-# Introduction
+-   Understand why CZID doesn't assign kingdom level taxa names.
+
+# Background
+
+Here I will import and clean all data required to analyze initial
+Illumina runs which were submitted in October 2022.
+
+We will work with [.biom files](https://biom-format.org/), acquired from
+a CZID analysis of our data (link
+[here](https://czid.org/my_data?currentDisplay=table&currentTab=samples&mapSidebarTab=summary&projectId=4788&showFilters=true&showStats=true&updatedAt=2022-10-07T18%3A28%3A46.867Z&workflow=short-read-mngs),
+only available when given access. Reach out to simon\@securebio.org if
+you do not have access)
+
+# Setup
 
 ## R packages
 
@@ -102,6 +104,8 @@ library(ggbeeswarm)
 
 theme_set(theme_minimal())
 ```
+
+## Defining directories
 
 We then set the folder containing the `.biom` file as our `here`
 directory.
@@ -187,7 +191,7 @@ Adding a `print` or `glimpse` call at the end of a variable-assignment
 pipe chain is a succinct way to save an object and show some info about
 it.
 
-## Creating a phyloseq object
+# Creating the building blocks of a phyloseq object
 
 The abundance (count) matrix, sample metadata table, and taxonomy table
 can be extracted with three corresponding functions functions from the
@@ -211,8 +215,6 @@ package. That is fine for now, though phyloseq will want a standard
 
 ```{r}
 sam <- biom %>% sample_metadata()
-sam %>% class
-sam %>% glimpse
 
 kable(sam)
 ```
@@ -310,7 +312,6 @@ experiment_class_type <- tibble(experiment_class, experiment_type)
 ```
 
 ```{r}
-sam %>% typeof()
 sam <- sam %>% 
   rownames_to_column(var = "sample_name") %>% 
   as_tibble %>% 
@@ -386,16 +387,12 @@ tax <- tax %>%
 tax %>% glimpse
 ```
 
+## Building the phyloseq object
+
 Now let's import all three tables into a single `phyloseq` object. This
 involves converting each individual table into the corresponding class
 from the `phyloseq` package, and then combining these into one
 phyloseq-class object.
-
-```{r}
-sam %>% typeof()
-```
-
-### Building the phyloseq object
 
 ```{r}
 ps <- phyloseq(
@@ -433,16 +430,9 @@ sam <- ps %>% sample_data %>% as_tibble
 tax <- ps %>% tax_table %>% as_tibble
 ```
 
-**REPLACE THIS CODE:**
-
-```{r}
-ps %>% t
-
-```
-
-As visible in the crude table below, there are multiple samples with
-very small species amounts, while other samples contain more than
-150'000 individual species. The samples with very low species counts are
+As visible in the tables below, there are multiple samples with very
+small species amounts, while other samples contain more than 150'000
+individual species. The samples with very low species counts are
 controls (A-C, CU-C, PC) and the CERES filtered sample.
 
 ```{r}
@@ -545,6 +535,19 @@ tax %>%
 
 Different than before these sequences seem to match NCBI records that
 aren't well annotated (e.g., "Uncultured Bacterium")
+
+A further feature of CZID's taxonomic assigment is the absence of
+kingdom information. As seen above, only \~800 out of \~12'000
+identified species have an assigned kingdom.
+
+Fixing this might be important, as we could be interested in analyzing
+samples on a kingdom level.
+
+```{r}
+tax %>%
+  filter(!is.na(kingdom)) %>%
+  select(superkingdom, kingdom, phylum, family, genus, species)
+```
 
 Lastly we can look at how species break down by superkingdom:
 
