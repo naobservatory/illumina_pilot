@@ -2881,11 +2881,22 @@ div.tocify {
 
 <div id="background" class="section level1" number="1">
 <h1><span class="header-section-number">1</span> Background</h1>
-<p>Todo:</p>
+<p>TODO:</p>
 <ul>
-<li><p>Make a data dictionary</p></li>
-<li><p>Clean metadata (add character types, make snake_case, replace null
-with NA, separate Notes column)</p></li>
+<li><p>Make a data dictionary.</p></li>
+<li><p>Clean metadata</p>
+<ul>
+<li><p>Parse notes field</p></li>
+<li><p>Turn all fields into snake_case</p></li>
+<li><p>Assign suitable variable types</p></li>
+<li><p>Turn null into NaN</p></li>
+</ul></li>
+<li><p>Attach FastQC data to the metadata</p>
+<ul>
+<li>Issue of having two files each for every sample, as CZID
+combined the forward and reverse (R1 &amp; R2) of each sample into
+one common sample.</li>
+</ul></li>
 </ul>
 <p>Here I will import and clean all data required to analyze initial
 Illumina runs which were submitted in October 2022.</p>

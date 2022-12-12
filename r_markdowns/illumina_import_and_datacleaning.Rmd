@@ -35,12 +35,25 @@ knitr::opts_chunk$set(
 
 # Background
 
-Todo:
+TODO:
 
--   Make a data dictionary
+-   Make a data dictionary.
 
--   Clean metadata (add character types, make snake_case, replace null
-    with NA, separate Notes column)
+-   Clean metadata
+
+    -   Parse notes field
+
+    -   Turn all fields into snake_case
+
+    -   Assign suitable variable types
+
+    -   Turn null into NaN
+
+-   Attach FastQC data to the metadata
+
+    -   Issue of having two files each for every sample, as CZID
+        combined the forward and reverse (R1 & R2) of each sample into
+        one common sample.
 
 Here I will import and clean all data required to analyze initial
 Illumina runs which were submitted in October 2022.
