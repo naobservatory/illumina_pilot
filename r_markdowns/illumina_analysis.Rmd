@@ -42,6 +42,8 @@ knitr::opts_chunk$set(
 
 -   DONE - Turn pipeline plot into line plot, without faceting
 
+    -   TODO - Integrate this: `expand_limits(y = c(0,3e06))`
+
 -   DONE - Fix labeling issues
 
 -   DONE - Use factors to change order in categorical data - relevant
@@ -207,7 +209,8 @@ barplot_pipeline %>%
              color = experiment_class)) +
   geom_path() +
   theme(axis.text.x = element_text(angle = 0, vjust=0.6)) +
-  scale_y_log10() 
+  scale_y_log10() +
+  expand_limits(y = c(0,3e06))
 ```
 
 ## Taxonomic composition overview
