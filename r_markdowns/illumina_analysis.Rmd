@@ -40,20 +40,20 @@ knitr::opts_chunk$set(
 
 ### Fixes
 
--   Turn pipeline plot into line plot, without faceting
+-   DONE - Turn pipeline plot into line plot, without faceting
 
--   Fix labeling issues
+-   DONE - Fix labeling issues
 
--   Use factors to change order in categorical data - relevant for
-    sorting bar plots along different categories, such as
+-   DONE - Use factors to change order in categorical data - relevant
+    for sorting bar plots along different categories, such as
     `experiment_class`
 
     -   Refer to these links: [forcats
         package](https://forcats.tidyverse.org/), [R for Data Science -
         Factors](https://r4ds.had.co.nz/factors.html#modifying-factor-order)
 
--   Drop the step of calculating abundances in an arduous way, instead
-    working with tax_glom
+-   DONE - Drop the step of calculating abundances in an arduous way,
+    instead working with tax_glom
 
 -   Fix `top_viruses1` code. The resulting table doesn't look right,
     hence I'd like to fix this.
@@ -299,6 +299,11 @@ ps_subset <- ps %>%
   prune_samples(sample_sums(.) > 1e3, .)
 ```
 
+```{r}
+ps_subset %>% sample_sums() 
+ps %>% sample_sums()
+```
+
 Using this subfilter, `ps_subset` only includes
 
 ```{r}
@@ -496,16 +501,15 @@ exponentiating the Shannon index
 ```{r}
 p_div <- ps_subset %>%
   sample_data %>%
-  ggplot(aes(y = exp(shannon_index), x = experiment_class,
+  ggplot(aes(y = exp(shannon_index), x = experiment_class, color = experiment_class)) +
   geom_quasirandom() +
+  geom_boxplot() +
   expand_limits(y = c(0,160)) +
   labs(x = 'Experiment Class', y = 'Effective Number of Viral #Species') +
   theme(
     axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
     legend.position = 'none'
   )
-)
-)
 p_div
 ```
 
@@ -547,9 +551,7 @@ x <- ps_subset %>%
     proportion = .abundance / sum(.abundance))
 ```
 
-#### **QUESTION:**
-
-Next, get the top 10 viruses by median proportion. We can do this
+Next, get the top 10 viruses by median proportion. We can do this in
 various ways, e.g.
 
 ```{r}
@@ -581,7 +583,7 @@ the following table.
 
 ```{r, fig.dim = c(10,5)}
 p_prop <- x %>%
-  filter(.otu %in% top_viruses2) %>%
+  filter(.otu %in% top_viruses1) %>%
   mutate(
     across(genus, fct_reorder, proportion, .fun = median, .desc = TRUE),
   ) %>%
