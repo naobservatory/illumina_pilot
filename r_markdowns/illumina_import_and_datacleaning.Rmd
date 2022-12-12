@@ -61,6 +61,15 @@ knitr::opts_chunk$set(
 
 -   Understand why CZID doesn't assign kingdom level taxa names.
 
+-   Explain sample metadata
+
+```{r, echo=FALSE}
+
+library(htmltools)
+
+htmltools::includeHTML("../data/fastqc_analyses/multiqc_reports/multiqc_report.html")
+```
+
 # Background
 
 Here I will import and clean all data required to analyze initial
@@ -210,8 +219,6 @@ package. That is fine for now, though phyloseq will want a standard
 
 ```{r}
 sam <- biom %>% sample_metadata()
-
-kable(sam)
 ```
 
 The sample metadata is a standard data frame with rownames giving sample
@@ -249,7 +256,7 @@ error with the following message:
     (right here) ------^
 
 After some digging this error is [found to
-be](https://github.com/ewels/MultiQC/issues/1509) cause by the
+be](https://github.com/ewels/MultiQC/issues/1509) caused by the
 occurrence of `NaN` in the json, which should instead be `null`, as JSON
 format doesn't allow for NaN. To fix this we can simply replace `NaN`
 with `null` across the file, using `gseb`. This works similar to `grep`

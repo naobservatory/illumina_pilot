@@ -1,0 +1,14 @@
+---
+title: "MultiQC_analysis"
+author: "Simon Grimm"
+date: "2022-12-12"
+output: html_document
+---
+
+```{r, echo=FALSE}
+
+
+library(htmltools)
+
+htmltools::includeHTML("../data/fastqc_analyses/multiqc_reports/multiqc_report.html")
+```
