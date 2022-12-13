@@ -63,13 +63,6 @@ knitr::opts_chunk$set(
 
 -   Explain sample metadata
 
-```{r, echo=FALSE}
-
-library(htmltools)
-
-htmltools::includeHTML("../data/fastqc_analyses/multiqc_reports/multiqc_report.html")
-```
-
 # Background
 
 Here I will import and clean all data required to analyze initial
