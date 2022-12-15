@@ -40,6 +40,9 @@ knitr::opts_chunk$set(
 
 ### Fixes
 
+-   Integrate changed metadata, as created in this google sheet:
+    <https://docs.google.com/spreadsheets/d/1a7BHgb0_NPgey61IHlsF-RP2_EBhAUyW4e377oHQs1k/edit?usp=sharing>
+
 -   Turn pipeline plot into line plot, without faceting
 
 -   Fix labeling issues
@@ -213,7 +216,6 @@ barplot_pipeline %>%
   scale_y_log10() 
 ```
 
-
 #### Pair programming
 
 ```{r}
@@ -257,7 +259,6 @@ sample_pipeline_plot %>%
     # labels = c(),
 ```
 
-
 ```{r}
 p <- sample_pipeline_plot %>%
   ggplot(aes(x= pipeline_stage, y = reads, 
@@ -269,7 +270,6 @@ p <- sample_pipeline_plot %>%
 
 (p + expand_limits(y = 0)) / (p + scale_y_log10())
 ```
-
 
 ## Taxonomic composition overview
 
