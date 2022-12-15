@@ -39,6 +39,9 @@ knitr::opts_chunk$set(
 
 -   Clean metadata
 
+    -   Integrate changed metadata, as created in this google sheet:
+        <https://docs.google.com/spreadsheets/d/1a7BHgb0_NPgey61IHlsF-RP2_EBhAUyW4e377oHQs1k/edit?usp=sharing>
+
     -   Parse notes field
 
     -   Turn all fields into snake_case
