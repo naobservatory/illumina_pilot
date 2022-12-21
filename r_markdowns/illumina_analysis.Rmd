@@ -40,42 +40,21 @@ knitr::opts_chunk$set(
 
 ### Fixes
 
-<<<<<<< HEAD
-<<<<<<< HEAD
+-   Integrate changed metadata, as created in this google sheet:
+    <https://docs.google.com/spreadsheets/d/1a7BHgb0_NPgey61IHlsF-RP2_EBhAUyW4e377oHQs1k/edit?usp=sharing>
+
+
 -   DONE - Turn pipeline plot into line plot, without faceting
-=======
+
 -   Integrate changed metadata, as created in this google sheet:
     <https://docs.google.com/spreadsheets/d/1a7BHgb0_NPgey61IHlsF-RP2_EBhAUyW4e377oHQs1k/edit?usp=sharing>
 
 -   Turn pipeline plot into line plot, without faceting
->>>>>>> pp
-=======
+
+
 
 -   Integrate changed metadata, as created in this google sheet:
     <https://docs.google.com/spreadsheets/d/1a7BHgb0_NPgey61IHlsF-RP2_EBhAUyW4e377oHQs1k/edit?usp=sharing>
-
->>>>>>> dff2c5705fc556896a813addcd45530b6b69e21b
-
-    -   TODO - Integrate this: `expand_limits(y = c(0,3e06))`
-
--   DONE - Fix labeling issues
-
--   DONE - Use factors to change order in categorical data - relevant
-    for sorting bar plots along different categories, such as
-    `experiment_class`
-
-    -   Refer to these links: [forcats
-        package](https://forcats.tidyverse.org/), [R for Data Science -
-        Factors](https://r4ds.had.co.nz/factors.html#modifying-factor-order)
-
--   DONE - Drop the step of calculating abundances in an arduous way,
-    instead working with tax_glom
-
--   Fix `top_viruses1` code. The resulting table doesn't look right,
-    hence I'd like to fix this.
-
--   Discuss with Mike about "`experiment_type` not being a useful var
-    since every sample has a different value"
 
 ### Additions
 
@@ -94,10 +73,6 @@ knitr::opts_chunk$set(
 ### R packages
 
 Loading our required R packages.
-
-```{r}
-install.packages("editData")
-```
 
 ```{r}
 # set of data analysis and viz tools
@@ -172,20 +147,19 @@ sample_pipeline_subset <- sample_pipeline_subset %>%
 
 ```{r}
 
+x_intercept = c(500000, 1000000, 1500000, 2000000, 2500000, 3000000)
+
 sample_pipeline %>% mutate(
     across(sample_name, str_replace_all, 
-      pattern = "221014Esv_", replacement = "")
-) %>% ggplot(aes(x = total_reads, y = sample_name)) +
-  geom_col(fill = "darkblue") +
+      pattern = "221014Esv_", replacement = ""),
+    sample = factor(sample) %>% fct_rev(),
+    protocol = sub("\\ .*", '', sample)
+) %>% ggplot(aes(x = total_reads, y = sample, fill = protocol)) +
+  geom_col() +
   theme_cowplot() +
   xlab("Reads per Sample") +
   ylab("Sample Name") +
-  scale_x_continuous(labels = scales::comma, limits = c(0,3.5e6))
-```
-
-\
-
-```{))}
+  scale_x_continuous(labels = scales::comma, limits = c(0,3.75e6))
 ```
 
 ### CZID Pipeline Steps
@@ -223,16 +197,7 @@ sample_pipeline_plot %>%
   ggplot(aes(x= pipeline_stage, y = reads, 
              group = sample_name, 
              color = experiment_class)) +
-<<<<<<< HEAD
-<<<<<<< HEAD
-  geom_path() +
-  theme(axis.text.x = element_text(angle = 0, vjust=0.6)) +
-  scale_y_log10() +
-  expand_limits(y = c(0,3e06))
-=======
-=======
 
->>>>>>> dff2c5705fc556896a813addcd45530b6b69e21b
   geom_line() +
   theme_cowplot() +
   theme(axis.text.x = element_text(angle = 0, vjust=0.6))
@@ -248,11 +213,9 @@ p <- sample_pipeline_plot %>%
   theme(axis.text.x = element_text(angle = 45, vjust=0.6))
 
 (p + expand_limits(y = 0)) / (p + scale_y_log10())
-<<<<<<< HEAD
->>>>>>> pp
-=======
 
->>>>>>> dff2c5705fc556896a813addcd45530b6b69e21b
+
+
 ```
 
 ## Taxonomic composition overview
