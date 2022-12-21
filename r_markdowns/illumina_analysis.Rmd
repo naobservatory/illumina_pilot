@@ -41,6 +41,7 @@ knitr::opts_chunk$set(
 ### Fixes
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 -   DONE - Turn pipeline plot into line plot, without faceting
 =======
 -   Integrate changed metadata, as created in this google sheet:
@@ -48,6 +49,12 @@ knitr::opts_chunk$set(
 
 -   Turn pipeline plot into line plot, without faceting
 >>>>>>> pp
+=======
+
+-   Integrate changed metadata, as created in this google sheet:
+    <https://docs.google.com/spreadsheets/d/1a7BHgb0_NPgey61IHlsF-RP2_EBhAUyW4e377oHQs1k/edit?usp=sharing>
+
+>>>>>>> dff2c5705fc556896a813addcd45530b6b69e21b
 
     -   TODO - Integrate this: `expand_limits(y = c(0,3e06))`
 
@@ -217,11 +224,15 @@ sample_pipeline_plot %>%
              group = sample_name, 
              color = experiment_class)) +
 <<<<<<< HEAD
+<<<<<<< HEAD
   geom_path() +
   theme(axis.text.x = element_text(angle = 0, vjust=0.6)) +
   scale_y_log10() +
   expand_limits(y = c(0,3e06))
 =======
+=======
+
+>>>>>>> dff2c5705fc556896a813addcd45530b6b69e21b
   geom_line() +
   theme_cowplot() +
   theme(axis.text.x = element_text(angle = 0, vjust=0.6))
@@ -237,7 +248,11 @@ p <- sample_pipeline_plot %>%
   theme(axis.text.x = element_text(angle = 45, vjust=0.6))
 
 (p + expand_limits(y = 0)) / (p + scale_y_log10())
+<<<<<<< HEAD
 >>>>>>> pp
+=======
+
+>>>>>>> dff2c5705fc556896a813addcd45530b6b69e21b
 ```
 
 ## Taxonomic composition overview
