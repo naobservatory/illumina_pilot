@@ -40,10 +40,8 @@ knitr::opts_chunk$set(
 
 ### Fixes
 
-
 -   Integrate changed metadata, as created in this google sheet:
     <https://docs.google.com/spreadsheets/d/1a7BHgb0_NPgey61IHlsF-RP2_EBhAUyW4e377oHQs1k/edit?usp=sharing>
-
 
     -   TODO - Integrate this: `expand_limits(y = c(0,3e06))`
 
@@ -83,10 +81,6 @@ knitr::opts_chunk$set(
 ### R packages
 
 Loading our required R packages.
-
-```{r}
-install.packages("editData")
-```
 
 ```{r}
 # set of data analysis and viz tools
@@ -161,20 +155,19 @@ sample_pipeline_subset <- sample_pipeline_subset %>%
 
 ```{r}
 
+x_intercept = c(500000, 1000000, 1500000, 2000000, 2500000, 3000000)
+
 sample_pipeline %>% mutate(
     across(sample_name, str_replace_all, 
-      pattern = "221014Esv_", replacement = "")
-) %>% ggplot(aes(x = total_reads, y = sample_name)) +
-  geom_col(fill = "darkblue") +
+      pattern = "221014Esv_", replacement = ""),
+    sample = factor(sample) %>% fct_rev(),
+    protocol = sub("\\ .*", '', sample)
+) %>% ggplot(aes(x = total_reads, y = sample, fill = protocol)) +
+  geom_col() +
   theme_cowplot() +
   xlab("Reads per Sample") +
   ylab("Sample Name") +
-  scale_x_continuous(labels = scales::comma, limits = c(0,3.5e6))
-```
-
-\
-
-```{))}
+  scale_x_continuous(labels = scales::comma, limits = c(0,3.75e6))
 ```
 
 ### CZID Pipeline Steps
