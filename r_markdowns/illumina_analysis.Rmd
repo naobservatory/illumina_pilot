@@ -43,15 +43,12 @@ knitr::opts_chunk$set(
 -   Integrate changed metadata, as created in this google sheet:
     <https://docs.google.com/spreadsheets/d/1a7BHgb0_NPgey61IHlsF-RP2_EBhAUyW4e377oHQs1k/edit?usp=sharing>
 
-
 -   DONE - Turn pipeline plot into line plot, without faceting
 
 -   Integrate changed metadata, as created in this google sheet:
     <https://docs.google.com/spreadsheets/d/1a7BHgb0_NPgey61IHlsF-RP2_EBhAUyW4e377oHQs1k/edit?usp=sharing>
 
 -   Turn pipeline plot into line plot, without faceting
-
-
 
 -   Integrate changed metadata, as created in this google sheet:
     <https://docs.google.com/spreadsheets/d/1a7BHgb0_NPgey61IHlsF-RP2_EBhAUyW4e377oHQs1k/edit?usp=sharing>
@@ -146,9 +143,6 @@ sample_pipeline_subset <- sample_pipeline_subset %>%
 ### Initial Reads per Sample
 
 ```{r}
-
-x_intercept = c(500000, 1000000, 1500000, 2000000, 2500000, 3000000)
-
 sample_pipeline %>% mutate(
     across(sample_name, str_replace_all, 
       pattern = "221014Esv_", replacement = ""),
@@ -169,10 +163,7 @@ take a closer look at the various steps in the CZID pipeline.
 
 ```{r}
 lvls <- c("total", "star", "trimmomatic", "priceseq", "czid_dedup", "assigned")
-
-
-
-
+\
 sample_pipeline_plot <- sample_pipeline_subset %>% 
   #> filter(total_reads > 1e4) %>%
   mutate(
