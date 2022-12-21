@@ -1,39 +1,25 @@
-Sample	Filename	File type	Encoding	Total Sequences	Sequences flagged as poor quality	Sequence length	%GC	total_deduplicated_percentage	basic_statistics	per_base_sequence_content	per_sequence_gc_content	per_base_n_content	sequence_length_distribution	sequence_duplication_levels	overrepresented_sequences	adapter_content	avg_sequence_length	per_base_sequence_quality	per_tile_sequence_quality	per_sequence_quality_scores
-221014Esv_D22-10169_R1	221014Esv_D22-10169_R1.fastq.gz	null	Illumina 1.5	0.0	0.0	0.0	0.0	100.0	pass	pass	pass	pass	pass	pass	pass	warn				
-221014Esv_D22-10169_R2	221014Esv_D22-10169_R2.fastq.gz	null	Illumina 1.5	0.0	0.0	0.0	0.0	100.0	pass	pass	pass	pass	pass	pass	pass	warn				
-221014Esv_D22-10170_R1	221014Esv_D22-10170_R1.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1116942.0	0.0	300.0	41.0	95.84537000592638	pass	fail	fail	pass	pass	pass	pass	fail	300.0	fail	warn	pass
-221014Esv_D22-10170_R2	221014Esv_D22-10170_R2.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1116942.0	0.0	300.0	42.0	96.24877746429978	pass	fail	fail	pass	pass	pass	pass	fail	300.0	fail	pass	pass
-221014Esv_D22-10171_R1	221014Esv_D22-10171_R1.fastq.gz	null	Illumina 1.5	0.0	0.0	0.0	0.0	100.0	pass	pass	pass	pass	pass	pass	pass	warn				
-221014Esv_D22-10171_R2	221014Esv_D22-10171_R2.fastq.gz	null	Illumina 1.5	0.0	0.0	0.0	0.0	100.0	pass	pass	pass	pass	pass	pass	pass	warn				
-221014Esv_D22-10172_R1	221014Esv_D22-10172_R1.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	202.0	0.0	300.0	37.0	99.5049504950495	pass	fail	fail	pass	pass	pass	warn	fail	300.0	fail	fail	fail
-221014Esv_D22-10172_R2	221014Esv_D22-10172_R2.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	202.0	0.0	300.0	41.0	100.0	pass	fail	fail	pass	pass	pass	warn	fail	300.0	fail	fail	fail
-221014Esv_D22-10173_R1	221014Esv_D22-10173_R1.fastq.gz	null	Illumina 1.5	0.0	0.0	0.0	0.0	100.0	pass	pass	pass	pass	pass	pass	pass	warn				
-221014Esv_D22-10173_R2	221014Esv_D22-10173_R2.fastq.gz	null	Illumina 1.5	0.0	0.0	0.0	0.0	100.0	pass	pass	pass	pass	pass	pass	pass	warn				
-221014Esv_D22-10174_R1	221014Esv_D22-10174_R1.fastq.gz	null	Illumina 1.5	0.0	0.0	0.0	0.0	100.0	pass	pass	pass	pass	pass	pass	pass	warn				
-221014Esv_D22-10174_R2	221014Esv_D22-10174_R2.fastq.gz	null	Illumina 1.5	0.0	0.0	0.0	0.0	100.0	pass	pass	pass	pass	pass	pass	pass	warn				
-221014Esv_D22-10175_R1	221014Esv_D22-10175_R1.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	732.0	0.0	300.0	40.0	96.99453551912568	pass	fail	fail	pass	pass	pass	fail	fail	300.0	fail	fail	fail
-221014Esv_D22-10175_R2	221014Esv_D22-10175_R2.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	732.0	0.0	300.0	42.0	99.59016393442623	pass	fail	fail	pass	pass	pass	warn	fail	300.0	fail	fail	fail
-221014Esv_D22-10176_R1	221014Esv_D22-10176_R1.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	661.0	0.0	300.0	41.0	98.48714069591527	pass	fail	fail	pass	pass	pass	fail	fail	300.0	fail	fail	fail
-221014Esv_D22-10176_R2	221014Esv_D22-10176_R2.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	661.0	0.0	300.0	43.0	99.84871406959152	pass	fail	fail	pass	pass	pass	warn	fail	300.0	fail	fail	fail
-221014Esv_D22-10177_R1	221014Esv_D22-10177_R1.fastq.gz	null	Illumina 1.5	0.0	0.0	0.0	0.0	100.0	pass	pass	pass	pass	pass	pass	pass	warn				
-221014Esv_D22-10177_R2	221014Esv_D22-10177_R2.fastq.gz	null	Illumina 1.5	0.0	0.0	0.0	0.0	100.0	pass	pass	pass	pass	pass	pass	pass	warn				
-221014Esv_D22-10178_R1	221014Esv_D22-10178_R1.fastq.gz	null	Illumina 1.5	0.0	0.0	0.0	0.0	100.0	pass	pass	pass	pass	pass	pass	pass	warn				
-221014Esv_D22-10178_R2	221014Esv_D22-10178_R2.fastq.gz	null	Illumina 1.5	0.0	0.0	0.0	0.0	100.0	pass	pass	pass	pass	pass	pass	pass	warn				
-221014Esv_D22-10179_R1	221014Esv_D22-10179_R1.fastq.gz	null	Illumina 1.5	0.0	0.0	0.0	0.0	100.0	pass	pass	pass	pass	pass	pass	pass	warn				
-221014Esv_D22-10179_R2	221014Esv_D22-10179_R2.fastq.gz	null	Illumina 1.5	0.0	0.0	0.0	0.0	100.0	pass	pass	pass	pass	pass	pass	pass	warn				
-221014Esv_D22-10180_R1	221014Esv_D22-10180_R1.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	219.0	0.0	300.0	39.0	96.34703196347031	pass	fail	fail	pass	pass	pass	fail	fail	300.0	fail	fail	fail
-221014Esv_D22-10180_R2	221014Esv_D22-10180_R2.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	219.0	0.0	300.0	43.0	100.0	pass	fail	fail	pass	pass	pass	warn	fail	300.0	fail	fail	fail
-221014Esv_D22-10330_R1	221014Esv_D22-10330_R1.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1396675.0	0.0	300.0	39.0	95.79032600716515	pass	fail	fail	pass	pass	pass	pass	fail	300.0	fail	warn	pass
-221014Esv_D22-10330_R2	221014Esv_D22-10330_R2.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1396675.0	0.0	300.0	41.0	96.02898363164788	pass	fail	fail	pass	pass	pass	pass	fail	300.0	fail	pass	warn
-221014Esv_D22-10331_R1	221014Esv_D22-10331_R1.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1384019.0	0.0	300.0	40.0	95.497048832687	pass	fail	fail	pass	pass	pass	pass	fail	300.0	fail	pass	pass
-221014Esv_D22-10331_R2	221014Esv_D22-10331_R2.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1384019.0	0.0	300.0	42.0	95.88687910342227	pass	fail	fail	pass	pass	pass	pass	fail	300.0	fail	warn	warn
-221014Esv_D22-10332_R1	221014Esv_D22-10332_R1.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1132444.0	0.0	300.0	41.0	99.4782933165818	pass	fail	fail	pass	pass	pass	pass	fail	300.0	fail	pass	fail
-221014Esv_D22-10332_R2	221014Esv_D22-10332_R2.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1132444.0	0.0	300.0	43.0	99.5047647631982	pass	fail	fail	pass	pass	pass	pass	fail	300.0	fail	pass	fail
-221014Esv_D22-10333_R1	221014Esv_D22-10333_R1.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1202489.0	0.0	300.0	42.0	99.08246746074467	pass	fail	fail	pass	pass	pass	pass	fail	300.0	fail	pass	fail
-221014Esv_D22-10333_R2	221014Esv_D22-10333_R2.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1202489.0	0.0	300.0	42.0	99.1621649476957	pass	fail	fail	pass	pass	pass	pass	fail	300.0	fail	pass	fail
-221014Esv_D22-10334_R1	221014Esv_D22-10334_R1.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1496319.0	0.0	300.0	40.0	95.8119071482098	pass	fail	fail	pass	pass	pass	pass	fail	300.0	fail	pass	fail
-221014Esv_D22-10334_R2	221014Esv_D22-10334_R2.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1496319.0	0.0	300.0	42.0	96.00621612002473	pass	fail	fail	pass	pass	pass	pass	fail	300.0	fail	pass	fail
-221014Esv_D22-10335_R1	221014Esv_D22-10335_R1.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1382857.0	0.0	300.0	40.0	95.50809571830504	pass	fail	fail	pass	pass	pass	pass	fail	300.0	fail	pass	fail
-221014Esv_D22-10335_R2	221014Esv_D22-10335_R2.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1382857.0	0.0	300.0	41.0	95.84336000785763	pass	fail	fail	pass	pass	pass	pass	fail	300.0	fail	warn	fail
-221014Esv_D22-10336_R1	221014Esv_D22-10336_R1.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1079381.0	0.0	300.0	40.0	96.73272359338532	pass	fail	fail	pass	pass	pass	pass	fail	300.0	fail	pass	pass
-221014Esv_D22-10336_R2	221014Esv_D22-10336_R2.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1079381.0	0.0	300.0	42.0	96.95522187768137	pass	fail	fail	pass	pass	pass	pass	fail	300.0	fail	pass	fail
+Sample	Filename	File type	Encoding	Total Sequences	Sequences flagged as poor quality	Sequence length	%GC	total_deduplicated_percentage	avg_sequence_length	basic_statistics	per_base_sequence_quality	per_tile_sequence_quality	per_sequence_quality_scores	per_base_sequence_content	per_sequence_gc_content	per_base_n_content	sequence_length_distribution	sequence_duplication_levels	overrepresented_sequences	adapter_content
+221014Esv_D22-10170_R1	221014Esv_D22-10170_R1.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1116942.0	0.0	300.0	41.0	95.84537000592638	300.0	pass	fail	warn	pass	fail	fail	pass	pass	pass	pass	fail
+221014Esv_D22-10170_R2	221014Esv_D22-10170_R2.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1116942.0	0.0	300.0	42.0	96.24877746429978	300.0	pass	fail	pass	pass	fail	fail	pass	pass	pass	pass	fail
+221014Esv_D22-10172_R1	221014Esv_D22-10172_R1.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	202.0	0.0	300.0	37.0	99.5049504950495	300.0	pass	fail	fail	fail	fail	fail	pass	pass	pass	warn	fail
+221014Esv_D22-10172_R2	221014Esv_D22-10172_R2.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	202.0	0.0	300.0	41.0	100.0	300.0	pass	fail	fail	fail	fail	fail	pass	pass	pass	warn	fail
+221014Esv_D22-10175_R1	221014Esv_D22-10175_R1.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	732.0	0.0	300.0	40.0	96.99453551912568	300.0	pass	fail	fail	fail	fail	fail	pass	pass	pass	fail	fail
+221014Esv_D22-10175_R2	221014Esv_D22-10175_R2.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	732.0	0.0	300.0	42.0	99.59016393442623	300.0	pass	fail	fail	fail	fail	fail	pass	pass	pass	warn	fail
+221014Esv_D22-10176_R1	221014Esv_D22-10176_R1.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	661.0	0.0	300.0	41.0	98.48714069591527	300.0	pass	fail	fail	fail	fail	fail	pass	pass	pass	fail	fail
+221014Esv_D22-10176_R2	221014Esv_D22-10176_R2.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	661.0	0.0	300.0	43.0	99.84871406959152	300.0	pass	fail	fail	fail	fail	fail	pass	pass	pass	warn	fail
+221014Esv_D22-10180_R1	221014Esv_D22-10180_R1.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	219.0	0.0	300.0	39.0	96.34703196347031	300.0	pass	fail	fail	fail	fail	fail	pass	pass	pass	fail	fail
+221014Esv_D22-10180_R2	221014Esv_D22-10180_R2.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	219.0	0.0	300.0	43.0	100.0	300.0	pass	fail	fail	fail	fail	fail	pass	pass	pass	warn	fail
+221014Esv_D22-10330_R1	221014Esv_D22-10330_R1.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1396675.0	0.0	300.0	39.0	95.79032600716515	300.0	pass	fail	warn	pass	fail	fail	pass	pass	pass	pass	fail
+221014Esv_D22-10330_R2	221014Esv_D22-10330_R2.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1396675.0	0.0	300.0	41.0	96.02898363164788	300.0	pass	fail	pass	warn	fail	fail	pass	pass	pass	pass	fail
+221014Esv_D22-10331_R1	221014Esv_D22-10331_R1.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1384019.0	0.0	300.0	40.0	95.497048832687	300.0	pass	fail	pass	pass	fail	fail	pass	pass	pass	pass	fail
+221014Esv_D22-10331_R2	221014Esv_D22-10331_R2.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1384019.0	0.0	300.0	42.0	95.88687910342227	300.0	pass	fail	warn	warn	fail	fail	pass	pass	pass	pass	fail
+221014Esv_D22-10332_R1	221014Esv_D22-10332_R1.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1132444.0	0.0	300.0	41.0	99.4782933165818	300.0	pass	fail	pass	fail	fail	fail	pass	pass	pass	pass	fail
+221014Esv_D22-10332_R2	221014Esv_D22-10332_R2.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1132444.0	0.0	300.0	43.0	99.5047647631982	300.0	pass	fail	pass	fail	fail	fail	pass	pass	pass	pass	fail
+221014Esv_D22-10333_R1	221014Esv_D22-10333_R1.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1202489.0	0.0	300.0	42.0	99.08246746074467	300.0	pass	fail	pass	fail	fail	fail	pass	pass	pass	pass	fail
+221014Esv_D22-10333_R2	221014Esv_D22-10333_R2.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1202489.0	0.0	300.0	42.0	99.1621649476957	300.0	pass	fail	pass	fail	fail	fail	pass	pass	pass	pass	fail
+221014Esv_D22-10334_R1	221014Esv_D22-10334_R1.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1496319.0	0.0	300.0	40.0	95.8119071482098	300.0	pass	fail	pass	fail	fail	fail	pass	pass	pass	pass	fail
+221014Esv_D22-10334_R2	221014Esv_D22-10334_R2.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1496319.0	0.0	300.0	42.0	96.00621612002473	300.0	pass	fail	pass	fail	fail	fail	pass	pass	pass	pass	fail
+221014Esv_D22-10335_R1	221014Esv_D22-10335_R1.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1382857.0	0.0	300.0	40.0	95.50809571830504	300.0	pass	fail	pass	fail	fail	fail	pass	pass	pass	pass	fail
+221014Esv_D22-10335_R2	221014Esv_D22-10335_R2.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1382857.0	0.0	300.0	41.0	95.84336000785763	300.0	pass	fail	warn	fail	fail	fail	pass	pass	pass	pass	fail
+221014Esv_D22-10336_R1	221014Esv_D22-10336_R1.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1079381.0	0.0	300.0	40.0	96.73272359338532	300.0	pass	fail	pass	pass	fail	fail	pass	pass	pass	pass	fail
+221014Esv_D22-10336_R2	221014Esv_D22-10336_R2.fastq.gz	Conventional base calls	Sanger / Illumina 1.9	1079381.0	0.0	300.0	42.0	96.95522187768137	300.0	pass	fail	pass	fail	fail	fail	pass	pass	pass	pass	fail
