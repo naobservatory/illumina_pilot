@@ -43,26 +43,18 @@ knitr::opts_chunk$set(
 -   Integrate changed metadata, as created in this google sheet:
     <https://docs.google.com/spreadsheets/d/1a7BHgb0_NPgey61IHlsF-RP2_EBhAUyW4e377oHQs1k/edit?usp=sharing>
 
-    -   TODO - Integrate this: `expand_limits(y = c(0,3e06))`
 
--   DONE - Fix labeling issues
+-   DONE - Turn pipeline plot into line plot, without faceting
 
--   DONE - Use factors to change order in categorical data - relevant
-    for sorting bar plots along different categories, such as
-    `experiment_class`
+-   Integrate changed metadata, as created in this google sheet:
+    <https://docs.google.com/spreadsheets/d/1a7BHgb0_NPgey61IHlsF-RP2_EBhAUyW4e377oHQs1k/edit?usp=sharing>
 
-    -   Refer to these links: [forcats
-        package](https://forcats.tidyverse.org/), [R for Data Science -
-        Factors](https://r4ds.had.co.nz/factors.html#modifying-factor-order)
+-   Turn pipeline plot into line plot, without faceting
 
--   DONE - Drop the step of calculating abundances in an arduous way,
-    instead working with tax_glom
 
--   Fix `top_viruses1` code. The resulting table doesn't look right,
-    hence I'd like to fix this.
 
--   Discuss with Mike about "`experiment_type` not being a useful var
-    since every sample has a different value"
+-   Integrate changed metadata, as created in this google sheet:
+    <https://docs.google.com/spreadsheets/d/1a7BHgb0_NPgey61IHlsF-RP2_EBhAUyW4e377oHQs1k/edit?usp=sharing>
 
 ### Additions
 
@@ -221,6 +213,8 @@ p <- sample_pipeline_plot %>%
   theme(axis.text.x = element_text(angle = 45, vjust=0.6))
 
 (p + expand_limits(y = 0)) / (p + scale_y_log10())
+
+
 
 ```
 
