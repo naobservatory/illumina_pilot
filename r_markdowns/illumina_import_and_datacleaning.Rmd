@@ -39,6 +39,9 @@ knitr::opts_chunk$set(
 
 -   Clean metadata
 
+    -   Integrate changed metadata, as created in this google sheet:
+        <https://docs.google.com/spreadsheets/d/1a7BHgb0_NPgey61IHlsF-RP2_EBhAUyW4e377oHQs1k/edit?usp=sharing>
+
     -   Parse notes field
 
     -   Turn all fields into snake_case
@@ -110,9 +113,9 @@ We then set the folder containing the `.biom` file as our `here`
 directory.
 
 ```{r}
-biom_data_path <- here("data")
+biom_data_path <- here("data/czid")
 multiqc_data_path <- here("data/fastqc_analyses/multiqc_reports/multiqc_data")
-metadata_data_path <- here("metadata")
+metadata_data_path <- here("data/metadata")
 output_data_path <- here("output")
 ```
 
@@ -140,7 +143,7 @@ We can see this by opening up the file and looking for the type argument
 towards the beginning; or looking at the top items in the list after
 reading in the file with a JSON parser.
 
-```{r}
+```{r, eval = F}
 biom_json <- path(biom_data_path,
   '2022_11_14_Illumina_pilot_nt_r.biom') %>%
   jsonlite::read_json()
@@ -158,7 +161,7 @@ valid. It doesn't actually matter what we use:
 
 For now, let's use 'Taxon table'.
 
-```{r}
+```{r, eval = F}
 biom_text <- path(biom_data_path, '2022_11_14_Illumina_pilot_nt_r.biom') %>%
   read_file
 stopifnot( identical(biom_text %>% str_count('"Table"'), 1L) )
@@ -212,6 +215,11 @@ package. That is fine for now, though phyloseq will want a standard
 
 ```{r}
 sam <- biom %>% sample_metadata()
+<<<<<<< HEAD
+=======
+
+knitr::kable(sam)
+>>>>>>> pp
 ```
 
 The sample metadata is a standard data frame with rownames giving sample

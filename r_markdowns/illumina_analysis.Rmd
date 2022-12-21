@@ -40,7 +40,14 @@ knitr::opts_chunk$set(
 
 ### Fixes
 
+<<<<<<< HEAD
 -   DONE - Turn pipeline plot into line plot, without faceting
+=======
+-   Integrate changed metadata, as created in this google sheet:
+    <https://docs.google.com/spreadsheets/d/1a7BHgb0_NPgey61IHlsF-RP2_EBhAUyW4e377oHQs1k/edit?usp=sharing>
+
+-   Turn pipeline plot into line plot, without faceting
+>>>>>>> pp
 
     -   TODO - Integrate this: `expand_limits(y = c(0,3e06))`
 
@@ -82,6 +89,10 @@ knitr::opts_chunk$set(
 Loading our required R packages.
 
 ```{r}
+install.packages("editData")
+```
+
+```{r}
 # set of data analysis and viz tools
 library(tidyverse)
 
@@ -108,7 +119,7 @@ library(ggbeeswarm)
 ### Defining directories
 
 ```{r}
-biom_data_path <- here("data")
+biom_data_path <- here("data/czid")
 multiqc_data_path <- here("data/fastqc_analyses/multiqc_reports/multiqc_data")
 metadata_data_path <- here("metadata")
 output_data_path <- here("output")
@@ -119,8 +130,11 @@ output_data_path <- here("output")
 ```{r}
 ps <- readRDS(here(output_data_path, "2022_12_08_illumina_phyloseq.Rds"))
 
-sample_pipeline <- read.csv (path(biom_data_path, "2022_12_01_czid_sample_overview.csv"),
-                             header = TRUE)
+# readr package to read in csv files
+sample_pipeline <- read_csv(path(biom_data_path, "2022_12_01_czid_sample_overview.csv")) %>%
+  janitor::clean_names() %>%
+  # remove unused columns
+  select(where(~!all(is.na(.))))
 ```
 
 ## Assessing CZID pipeline
@@ -142,75 +156,88 @@ ps_sample_type_and_sum <- ps %>%
   select(experiment_type, experiment_class, sample_sum)
 
 sample_pipeline_subset <- sample_pipeline_subset %>% 
-  left_join(.,ps_sample_type_and_sum, 
-            by = c("Experiment.Type" = "experiment_type"), 
+  left_join(., ps_sample_type_and_sum, 
+            by = c("experiment_type"), 
             copy = TRUE)
 ```
+
+### Initial Reads per Sample
+
+```{r}
+
+sample_pipeline %>% mutate(
+    across(sample_name, str_replace_all, 
+      pattern = "221014Esv_", replacement = "")
+) %>% ggplot(aes(x = total_reads, y = sample_name)) +
+  geom_col(fill = "darkblue") +
+  theme_cowplot() +
+  xlab("Reads per Sample") +
+  ylab("Sample Name") +
+  scale_x_continuous(labels = scales::comma, limits = c(0,3.5e6))
+```
+
+\
+
+```{))}
+```
+
+### CZID Pipeline Steps
 
 After adding metadata to our `sample_pipeline_subset` table, we can now
 take a closer look at the various steps in the CZID pipeline.
 
 ```{r}
-#Subsetting dataframe for visualization
-
-pipeline <- sample_pipeline_subset %>% 
-  select(sample_name,
-         experiment_class,
-         total_reads, 
-         reads_after_star, 
-         reads_after_trimmomatic,
-         reads_after_priceseq, 
-         reads_after_czid_dedup, 
-         sample_sum,sample_name)
-
-#Pivoting dataframe
-
-pipeline_pivoted <- pipeline %>% 
-  as_tibble %>%
-  pivot_longer(!c("sample_name", "experiment_class"),
-               names_to = "pipeline_stage", values_to = "reads")
-
-barplot_pipeline <- pipeline_pivoted %>%
-  mutate_if(is.character,
-            str_replace_all,
-            pattern = "reads_after_",
-            replacement = "") %>%
-  mutate_if(is.character,
-            str_replace_all,
-            pattern = "sample_sum",
-            replacement = "assigned") %>%
-  mutate_if(is.character,
-            str_replace_all,
-            pattern = "_reads",
-            replacement = "")
+lvls <- c("total", "star", "trimmomatic", "priceseq", "czid_dedup", "assigned")
 
 
-#Recoloring barplot_pipeline_pivoted to make it look nicer
-
-barplot_pipeline %>% 
-  mutate(pipeline_stage = factor(pipeline_stage, 
-                                 levels = c("total", "star", 
-                                            "trimmomatic", "priceseq", 
-                                            "czid_dedup", "assigned"))) %>%
-  ggplot(aes(x= pipeline_stage, y = reads)) +
-  geom_col() +
-  facet_wrap(~ sample_name) +
-  theme(axis.text.x = element_text(angle = 45, vjust=0.6)) +
-  scale_y_log10()
 
 
-barplot_pipeline %>% 
-  mutate(pipeline_stage = factor(pipeline_stage, 
-                                 levels = c("total", "star", 
-                                            "trimmomatic", "priceseq", 
-                                            "czid_dedup", "assigned"))) %>%
+sample_pipeline_plot <- sample_pipeline_subset %>% 
+  #> filter(total_reads > 1e4) %>%
+  mutate(
+    reads_after_total = total_reads,
+    reads_after_assigned = sample_sum,
+  ) %>%
+  pivot_longer(
+    starts_with('reads_after_'),
+    names_to = "pipeline_stage",
+    values_to = "reads"
+  ) %>%
+  mutate(
+    across(pipeline_stage, str_replace_all, 
+      pattern = "reads_after_", replacement = ""),
+    across(pipeline_stage, factor, levels = lvls),
+  ) %>%
+  glimpse
+
+sample_pipeline_plot %>% select(sample_name, pipeline_stage, reads)
+
+sample_pipeline_plot %>%
   ggplot(aes(x= pipeline_stage, y = reads, 
              group = sample_name, 
              color = experiment_class)) +
+<<<<<<< HEAD
   geom_path() +
   theme(axis.text.x = element_text(angle = 0, vjust=0.6)) +
   scale_y_log10() +
   expand_limits(y = c(0,3e06))
+=======
+  geom_line() +
+  theme_cowplot() +
+  theme(axis.text.x = element_text(angle = 0, vjust=0.6))
+```
+
+```{r}
+p <- sample_pipeline_plot %>%
+  ggplot(aes(x= pipeline_stage, y = reads, 
+             group = sample_name, 
+             color = experiment_class)) +
+  geom_line() +
+  theme_cowplot() +
+  theme(axis.text.x = element_text(angle = 45, vjust=0.6))
+
+(p + expand_limits(y = 0)) / (p + scale_y_log10())
+>>>>>>> pp
 ```
 
 ## Taxonomic composition overview
