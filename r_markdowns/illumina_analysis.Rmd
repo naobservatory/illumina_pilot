@@ -40,23 +40,25 @@ knitr::opts_chunk$set(
 
 ### Fixes
 
+
 -   Integrate changed metadata, as created in this google sheet:
     <https://docs.google.com/spreadsheets/d/1a7BHgb0_NPgey61IHlsF-RP2_EBhAUyW4e377oHQs1k/edit?usp=sharing>
 
--   Turn pipeline plot into line plot, without faceting
 
--   Fix labeling issues
+    -   TODO - Integrate this: `expand_limits(y = c(0,3e06))`
 
--   Use factors to change order in categorical data - relevant for
-    sorting bar plots along different categories, such as
+-   DONE - Fix labeling issues
+
+-   DONE - Use factors to change order in categorical data - relevant
+    for sorting bar plots along different categories, such as
     `experiment_class`
 
     -   Refer to these links: [forcats
         package](https://forcats.tidyverse.org/), [R for Data Science -
         Factors](https://r4ds.had.co.nz/factors.html#modifying-factor-order)
 
--   Drop the step of calculating abundances in an arduous way, instead
-    working with tax_glom
+-   DONE - Drop the step of calculating abundances in an arduous way,
+    instead working with tax_glom
 
 -   Fix `top_viruses1` code. The resulting table doesn't look right,
     hence I'd like to fix this.
@@ -210,6 +212,7 @@ sample_pipeline_plot %>%
   ggplot(aes(x= pipeline_stage, y = reads, 
              group = sample_name, 
              color = experiment_class)) +
+
   geom_line() +
   theme_cowplot() +
   theme(axis.text.x = element_text(angle = 0, vjust=0.6))
@@ -225,6 +228,7 @@ p <- sample_pipeline_plot %>%
   theme(axis.text.x = element_text(angle = 45, vjust=0.6))
 
 (p + expand_limits(y = 0)) / (p + scale_y_log10())
+
 ```
 
 ## Taxonomic composition overview
@@ -314,6 +318,11 @@ ps_subset <- ps %>%
   filter_tax_table(superkingdom == 'Viruses') %>%
   filter_taxa2(~ sum(. > 0) > 2 & sum(.) >= 10) %>%
   prune_samples(sample_sums(.) > 1e3, .)
+```
+
+```{r}
+ps_subset %>% sample_sums() 
+ps %>% sample_sums()
 ```
 
 Using this subfilter, `ps_subset` only includes
@@ -513,16 +522,15 @@ exponentiating the Shannon index
 ```{r}
 p_div <- ps_subset %>%
   sample_data %>%
-  ggplot(aes(y = exp(shannon_index), x = experiment_class,
+  ggplot(aes(y = exp(shannon_index), x = experiment_class, color = experiment_class)) +
   geom_quasirandom() +
+  geom_boxplot() +
   expand_limits(y = c(0,160)) +
   labs(x = 'Experiment Class', y = 'Effective Number of Viral #Species') +
   theme(
     axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
     legend.position = 'none'
   )
-)
-)
 p_div
 ```
 
@@ -564,9 +572,7 @@ x <- ps_subset %>%
     proportion = .abundance / sum(.abundance))
 ```
 
-#### **QUESTION:**
-
-Next, get the top 10 viruses by median proportion. We can do this
+Next, get the top 10 viruses by median proportion. We can do this in
 various ways, e.g.
 
 ```{r}
@@ -598,7 +604,7 @@ the following table.
 
 ```{r, fig.dim = c(10,5)}
 p_prop <- x %>%
-  filter(.otu %in% top_viruses2) %>%
+  filter(.otu %in% top_viruses1) %>%
   mutate(
     across(genus, fct_reorder, proportion, .fun = median, .desc = TRUE),
   ) %>%
