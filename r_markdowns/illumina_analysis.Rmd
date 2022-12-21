@@ -83,6 +83,10 @@ knitr::opts_chunk$set(
 Loading our required R packages.
 
 ```{r}
+install.packages("editData")
+```
+
+```{r}
 # set of data analysis and viz tools
 library(tidyverse)
 
@@ -151,80 +155,36 @@ sample_pipeline_subset <- sample_pipeline_subset %>%
             copy = TRUE)
 ```
 
+### Initial Reads per Sample
+
+```{r}
+
+sample_pipeline %>% mutate(
+    across(sample_name, str_replace_all, 
+      pattern = "221014Esv_", replacement = "")
+) %>% ggplot(aes(x = total_reads, y = sample_name)) +
+  geom_col(fill = "darkblue") +
+  theme_cowplot() +
+  xlab("Reads per Sample") +
+  ylab("Sample Name") +
+  scale_x_continuous(labels = scales::comma, limits = c(0,3.5e6))
+```
+
+\
+
+```{))}
+```
+
+### CZID Pipeline Steps
+
 After adding metadata to our `sample_pipeline_subset` table, we can now
 take a closer look at the various steps in the CZID pipeline.
 
 ```{r}
-#Subsetting dataframe for visualization
-
-pipeline <- sample_pipeline_subset %>% 
-  select(sample_name,
-         experiment_class,
-         total_reads, 
-         reads_after_star, 
-         reads_after_trimmomatic,
-         reads_after_priceseq, 
-         reads_after_czid_dedup, 
-         sample_sum,sample_name)
-
-#Pivoting dataframe
-
-pipeline_pivoted <- pipeline %>% 
-  as_tibble %>%
-  pivot_longer(!c("sample_name", "experiment_class"),
-               names_to = "pipeline_stage", values_to = "reads")
-
-barplot_pipeline <- pipeline_pivoted %>%
-  mutate_if(is.character,
-            str_replace_all,
-            pattern = "reads_after_",
-            replacement = "") %>%
-  mutate_if(is.character,
-            str_replace_all,
-            pattern = "sample_sum",
-            replacement = "assigned") %>%
-  mutate_if(is.character,
-            str_replace_all,
-            pattern = "_reads",
-            replacement = "")
-
-
-#Recoloring barplot_pipeline_pivoted to make it look nicer
-
-barplot_pipeline %>% 
-  mutate(pipeline_stage = factor(pipeline_stage, 
-                                 levels = c("total", "star", 
-                                            "trimmomatic", "priceseq", 
-                                            "czid_dedup", "assigned"))) %>%
-  ggplot(aes(x= pipeline_stage, y = reads)) +
-  geom_col() +
-  facet_wrap(~ sample_name) +
-  theme(axis.text.x = element_text(angle = 45, vjust=0.6)) +
-  scale_y_log10()
-
-
-barplot_pipeline %>% 
-  mutate(pipeline_stage = factor(pipeline_stage, 
-                                 levels = c("total", "star", 
-                                            "trimmomatic", "priceseq", 
-                                            "czid_dedup", "assigned"))) %>%
-  ggplot(aes(x= pipeline_stage, y = reads, 
-             group = sample_name, 
-             color = experiment_class)) +
-  geom_path() +
-  theme(axis.text.x = element_text(angle = 0, vjust=0.6)) +
-  scale_y_log10() 
-```
-
-#### Pair programming
-
-```{r}
 lvls <- c("total", "star", "trimmomatic", "priceseq", "czid_dedup", "assigned")
 
-#> reads_after_star
-#> reads_after_trimmomatic
-#> reads_after_priceseq
-#> reads_after_czid_dedup
+
+
 
 sample_pipeline_plot <- sample_pipeline_subset %>% 
   #> filter(total_reads > 1e4) %>%
@@ -251,12 +211,8 @@ sample_pipeline_plot %>%
              group = sample_name, 
              color = experiment_class)) +
   geom_line() +
-  expand_limits(y = 0) +
-  # scale_y_log10() +
   theme_cowplot() +
   theme(axis.text.x = element_text(angle = 0, vjust=0.6))
-    # breaks = c(),
-    # labels = c(),
 ```
 
 ```{r}
@@ -266,7 +222,7 @@ p <- sample_pipeline_plot %>%
              color = experiment_class)) +
   geom_line() +
   theme_cowplot() +
-  theme(axis.text.x = element_text(angle = 0, vjust=0.6))
+  theme(axis.text.x = element_text(angle = 45, vjust=0.6))
 
 (p + expand_limits(y = 0)) / (p + scale_y_log10())
 ```
