@@ -24,7 +24,6 @@ editor_options:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
   echo = TRUE,
-  warning = FALSE,
   cache = TRUE,
   warning=FALSE,
   code_folding = TRUE,
@@ -41,27 +40,14 @@ knitr::opts_chunk$set(
 ### Fixes
 
 -   Integrate changed metadata, as created in this google sheet:
-    <https://docs.google.com/spreadsheets/d/1a7BHgb0_NPgey61IHlsF-RP2_EBhAUyW4e377oHQs1k/edit?usp=sharing>
+    <https://docs.google.com/spreadsheets/d/1a7BHgb0_NPgey61IHlsF-RP2_EBhAUyW4e377oHQs1k/edit?usp=sharing>Additions
 
--   DONE - Turn pipeline plot into line plot, without faceting
-
--   Integrate changed metadata, as created in this google sheet:
-    <https://docs.google.com/spreadsheets/d/1a7BHgb0_NPgey61IHlsF-RP2_EBhAUyW4e377oHQs1k/edit?usp=sharing>
-
--   Turn pipeline plot into line plot, without faceting
-
--   Integrate changed metadata, as created in this google sheet:
-    <https://docs.google.com/spreadsheets/d/1a7BHgb0_NPgey61IHlsF-RP2_EBhAUyW4e377oHQs1k/edit?usp=sharing>
-
-### Additions
-
+```{=html}
+<!-- -->
+```
 -   Show how many reads do not have a full taxonomic analysis
 
     \- Of what remains, what is each sequence
-
--   Do further types of ordination
-
-    -   CPCA (?) -\> do that on super kingdom analysis
 
 -   Compare neg controls to other samples (ordination/distances,
 
@@ -71,7 +57,7 @@ knitr::opts_chunk$set(
 
 Loading our required R packages.
 
-```{r}
+```{r, warning=FALSE, message=FALSE, output = FALSE,}
 # set of data analysis and viz tools
 library(tidyverse)
 
@@ -143,17 +129,24 @@ sample_pipeline_subset <- sample_pipeline_subset %>%
 ### Initial Reads per Sample
 
 ```{r}
+
+vlines <- data.frame(xint = c(500000, 1000000, 1500000, 2000000, 2500000, 3000000), grp = letters[1:6])
+
 sample_pipeline %>% mutate(
     across(sample_name, str_replace_all, 
       pattern = "221014Esv_", replacement = ""),
     sample = factor(sample) %>% fct_rev(),
     protocol = sub("\\ .*", '', sample)
 ) %>% ggplot(aes(x = total_reads, y = sample, fill = protocol)) +
+  geom_vline(data = vlines, aes(xintercept = xint), color="lightgrey", linetype = "dashed", size = 0.2) +
   geom_col() +
-  theme_cowplot() +
   xlab("Reads per Sample") +
   ylab("Sample Name") +
-  scale_x_continuous(labels = scales::comma, limits = c(0,3.75e6))
+  theme_cowplot() +
+  scale_x_continuous(labels = scales::comma, limits = c(0,3.35e6), expand = c(0, 0)) +
+  guides(fill=guide_legend(title="Wet Lab Protocol"))
+  
+
 ```
 
 ### CZID Pipeline Steps
@@ -163,7 +156,7 @@ take a closer look at the various steps in the CZID pipeline.
 
 ```{r}
 lvls <- c("total", "star", "trimmomatic", "priceseq", "czid_dedup", "assigned")
-\
+
 sample_pipeline_plot <- sample_pipeline_subset %>% 
   #> filter(total_reads > 1e4) %>%
   mutate(
