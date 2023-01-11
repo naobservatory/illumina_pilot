@@ -14,7 +14,7 @@ output:
     toc_collapsed: yes
     df_print: paged
     code_folding: show
-    theme: lumen 
+    theme: lumen
     warning: false
 editor_options:
   markdown:
@@ -42,9 +42,8 @@ knitr::opts_chunk$set(
 -   Integrate changed metadata, as created in this google sheet:
     <https://docs.google.com/spreadsheets/d/1a7BHgb0_NPgey61IHlsF-RP2_EBhAUyW4e377oHQs1k/edit?usp=sharing>Additions
 
-```{=html}
 <!-- -->
-```
+
 -   Show how many reads do not have a full taxonomic analysis
 
     \- Of what remains, what is each sequence
@@ -115,14 +114,14 @@ experiment class and the total number of assigned reads (`total_reads`)
 sample_pipeline_subset <- sample_pipeline %>%
   filter(total_reads > 1e4)
 
-ps_sample_type_and_sum <- ps %>% 
-  sample_data() %>% 
-  as_tibble() %>% 
+ps_sample_type_and_sum <- ps %>%
+  sample_data() %>%
+  as_tibble() %>%
   select(experiment_type, experiment_class, sample_sum)
 
-sample_pipeline_subset <- sample_pipeline_subset %>% 
-  left_join(., ps_sample_type_and_sum, 
-            by = c("experiment_type"), 
+sample_pipeline_subset <- sample_pipeline_subset %>%
+  left_join(., ps_sample_type_and_sum,
+            by = c("experiment_type"),
             copy = TRUE)
 ```
 
@@ -133,7 +132,7 @@ sample_pipeline_subset <- sample_pipeline_subset %>%
 vlines <- data.frame(xint = c(500000, 1000000, 1500000, 2000000, 2500000, 3000000), grp = letters[1:6])
 
 sample_pipeline %>% mutate(
-    across(sample_name, str_replace_all, 
+    across(sample_name, str_replace_all,
       pattern = "221014Esv_", replacement = ""),
     sample = factor(sample) %>% fct_rev(),
     protocol = sub("\\ .*", '', sample)
@@ -145,7 +144,7 @@ sample_pipeline %>% mutate(
   theme_cowplot() +
   scale_x_continuous(labels = scales::comma, limits = c(0,3.35e6), expand = c(0, 0)) +
   guides(fill=guide_legend(title="Wet Lab Protocol"))
-  
+
 
 ```
 
@@ -157,7 +156,7 @@ take a closer look at the various steps in the CZID pipeline.
 ```{r}
 lvls <- c("total", "star", "trimmomatic", "priceseq", "czid_dedup", "assigned")
 
-sample_pipeline_plot <- sample_pipeline_subset %>% 
+sample_pipeline_plot <- sample_pipeline_subset %>%
   #> filter(total_reads > 1e4) %>%
   mutate(
     reads_after_total = total_reads,
@@ -169,7 +168,7 @@ sample_pipeline_plot <- sample_pipeline_subset %>%
     values_to = "reads"
   ) %>%
   mutate(
-    across(pipeline_stage, str_replace_all, 
+    across(pipeline_stage, str_replace_all,
       pattern = "reads_after_", replacement = ""),
     across(pipeline_stage, factor, levels = lvls),
   ) %>%
@@ -178,8 +177,8 @@ sample_pipeline_plot <- sample_pipeline_subset %>%
 sample_pipeline_plot %>% select(sample_name, pipeline_stage, reads)
 
 sample_pipeline_plot %>%
-  ggplot(aes(x= pipeline_stage, y = reads, 
-             group = sample_name, 
+  ggplot(aes(x= pipeline_stage, y = reads,
+             group = sample_name,
              color = experiment_class)) +
 
   geom_line() +
@@ -189,8 +188,8 @@ sample_pipeline_plot %>%
 
 ```{r}
 p <- sample_pipeline_plot %>%
-  ggplot(aes(x= pipeline_stage, y = reads, 
-             group = sample_name, 
+  ggplot(aes(x= pipeline_stage, y = reads,
+             group = sample_name,
              color = experiment_class)) +
   geom_line() +
   theme_cowplot() +
@@ -292,7 +291,7 @@ ps_subset <- ps %>%
 ```
 
 ```{r}
-ps_subset %>% sample_sums() 
+ps_subset %>% sample_sums()
 ps %>% sample_sums()
 ```
 
