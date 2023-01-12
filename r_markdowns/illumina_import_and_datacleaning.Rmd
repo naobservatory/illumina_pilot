@@ -14,7 +14,7 @@ output:
     toc_collapsed: yes
     df_print: paged
     code_folding: show
-    theme: lumen 
+    theme: lumen
     warning: false
 editor_options:
   markdown:
@@ -27,7 +27,7 @@ knitr::opts_chunk$set(
   cache = TRUE,
   warning=FALSE,
   autodep = TRUE,
-  
+
   cache.comments = FALSE,
   dpi = 300
 )
@@ -169,7 +169,7 @@ biom_text_fixed <- biom_text %>%
   str_replace('"Table"', '"Taxon table"')
 write_file(
   biom_text_fixed,
-  path(biom_data_path, '2022_11_14_Illumina_pilot_nt_r_fixed.biom')
+  path(output_data_path, '2022_11_14_Illumina_pilot_nt_r_fixed.biom')
 )
 
 ```
@@ -181,7 +181,7 @@ string as a new BIOM file. We should now be able to load the corrected
 BIOM file with the `biomformat` package,
 
 ```{r}
-biom <- path(biom_data_path, '2022_11_14_Illumina_pilot_nt_r_fixed.biom') %>% read_biom() %>%
+biom <- path(output_data_path, '2022_11_14_Illumina_pilot_nt_r_fixed.biom') %>% read_biom() %>%
   print
 ```
 
@@ -249,9 +249,9 @@ When attempting to read in our `multiqc_data.json` file, either with
 `TidyMultiqc::load_multiqc` or with `jsonlite::read_json()`, we get an
 error with the following message:
 
-    Error in parse_con(txt, bigint_as_char) : 
+    Error in parse_con(txt, bigint_as_char) :
     lexical error: invalid char in json text.
-    NaN, 
+    NaN,
     (right here) ------^
 
 After some digging this error is [found to
@@ -281,7 +281,7 @@ combined the forward and reverse (R1 & R2) of each sample into one
 common sample.
 
 ```{r}
-multiqc_data <- TidyMultiqc::load_multiqc(path(multiqc_data_path, 'multiqc_data.json')) %>% 
+multiqc_data <- TidyMultiqc::load_multiqc(path(multiqc_data_path, 'multiqc_data.json')) %>%
   print
 ```
 
@@ -306,16 +306,16 @@ experiment_class <- c("peg_precipitation", "peg_precipitation",
 
 experiment_type <- c("P1", "P2" ,"P3", "P-C",
                      "CU1","CU2", "CF","CU-C",
-                     "A1","A2","A3","A-C")  
+                     "A1","A2","A3","A-C")
 
 experiment_class_type <- tibble(experiment_class, experiment_type)
 
 ```
 
 ```{r}
-sam <- sam %>% 
-  rownames_to_column(var = "sample_name") %>% 
-  as_tibble %>% 
+sam <- sam %>%
+  rownames_to_column(var = "sample_name") %>%
+  as_tibble %>%
   left_join(.,experiment_class_type, by = "experiment_type", copy = TRUE)
 ```
 

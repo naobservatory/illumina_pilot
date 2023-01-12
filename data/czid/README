@@ -1,0 +1,8 @@
+ - `2022_12_01_Illumina_pilot_nr_r.biom`
+   Original biom file, based on analysis of nucleic acids, obtained from the CZID project `11_09_2022_nao_exp_4_005`
+ - `2022_12_01_czid_sample_overview.csv`
+   Sample overview table, detailing different aspects about the CZID run. Supplemental file obtained from the CZID project `11_09_2022_nao_exp_4_005`
+ - `2022_11_14_Illumina_pilot_nt_r.biom`
+   Original biom file, based on analysis of amino acids, obtained from the CZID project `11_09_2022_nao_exp_4_005`
+ - 2`022_12_01_combined_sample_taxon_results_NT.r.csv`
+   Abundance of all taxons across all samples. Supplemental file obtained from the CZID project `11_09_2022_nao_exp_4_005`
