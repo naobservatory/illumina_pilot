@@ -1,3 +1,4 @@
+## Content
  - `2022_12_01_Illumina_pilot_nr_r.biom`
    Original biom file, based on analysis of nucleic acids, obtained from the CZID project `11_09_2022_nao_exp_4_005`
  - `2022_12_01_czid_sample_overview.csv`
@@ -6,3 +7,28 @@
    Original biom file, based on analysis of amino acids, obtained from the CZID project `11_09_2022_nao_exp_4_005`
  - 2`022_12_01_combined_sample_taxon_results_NT.r.csv`
    Abundance of all taxons across all samples. Supplemental file obtained from the CZID project `11_09_2022_nao_exp_4_005`
+
+## More information on gsnap.hitsummary2.tab provided by CZID support:
+
+The progression of read assignment (from initial short read TaxID to refined assembly-based TaxlD) can be identified in the hitsummary2 files (`gsnap.hitsummary2.tab` and `rapsearch2.hitsummary2.tab`)
+
+A typical row in the hitsummary2 file looks like this:
+NB501961:211:HGWKCBGX9:1:11205:5935:16320/1 1155900 GQ881617.1 155900 -200 -300 NODE_1497_length
+
+The .tab file contains 12 columns:
+1. Read ID
+2. Taxonomy level (all -1)
+3. Final TaxID assignment
+4. Initial (single short-read) GenBank alignment
+5. TaxID (species), from single alignment - obtained from the accession2taxid mapping after SNAP or Rapsearch2.
+*note: *the pipeline outputs species-level counts as well as genus-level counts. For rows corresponding to genus-level
+counts (tax_level = 2), the species taxID is listed as "-100".
+6. TaxID (genus), from single alignment - obtained by walking the phylogenetic tree backwards. If there is no genus-level classification, this value will be "-200".
+7. TaxID (family), from single alignment - obtained by walking the phylogenetic tree backwards. If there is no family-level classification, this value will be "-300".
+8. Assembled contig that this read maps to
+9. The GenBank ID that the contig mapped to
+10. TaxID (species), from assembled contig - obtained from the accession2taxid mapping after BLAST
+11. Tax/D (genus), from assembled contig
+12. TaxID (family), from assembled contig
+13. "from_assembly" - this flag indicates whether this read was mapped ONLY through assembly. If this flag is present, then fields (4) - (7) are duplicates of the assembly-based TaxID call, and are not single short-read alignments.
+
