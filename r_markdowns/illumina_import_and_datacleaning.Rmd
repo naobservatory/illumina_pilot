@@ -545,6 +545,14 @@ Fixing this might be important, as we could be interested in analyzing
 samples on a kingdom level.
 
 ```{r}
+
+```
+```{r}
+
+```
+
+
+```{r}
 tax %>%
   filter(!is.na(kingdom)) %>%
   select(superkingdom, kingdom, phylum, family, genus, species)

@@ -1,0 +1,63 @@
+Table 1
+Column,Heading,Definition,,
+A,Species Sort,This column is used for proper sorting of all records. Please leave empty.,,
+B,Isolate Sort,This column is used for proper alphanumeric sorting of virus isolates within a species,,
+C,Realm,"A 'realm' is  the highest taxonomic rank into which virus species can be classified. Use of the taxonomic rank 'realm' is optional. If left blank,  lower taxonomic levels of have not been assigned to a realm. The realm rank suffix is ""-viria"".",,
+D,Subrealm,"A  'subrealm' is a rank in the taxonomic hierarchy into which virus species can be classified. Use of the taxonomic rank 'subrealm' is optional. If left blank,  lower taxonomic levels of have not been assigned to a subrealm.The subrealm rank suffix is ""-vira"".",,
+E,Kingdom,"A  'kingdom' is a rank in the taxonomic hierarchy into which virus species can be classified. Use of the taxonomic rank 'kingdom' is optional. If left blank,  lower taxonomic levels of have not been assigned to a kingdom. The kingdom rank suffix is ""-virae"".",,
+F,Subkingdom,"A  'subkingdom' is a rank in the taxonomic hierarchy into which virus species can be classified. Use of the taxonomic rank 'subkingdom' is optional. If left blank,  lower taxonomic levels of have not been assigned to a subkingdom. The subkingdom rank suffix is ""-virites"".",,
+G,Phylum,"A  'phylum' is a rank in the taxonomic hierarchy into which virus species can be classified. Use of the taxonomic rank 'phylum' is optional. If left blank,  lower taxonomic levels of have not been assigned to a phylum.The phylum rank suffix is ""-viricota"".",,
+H,Subphylum,"A  'subphylum' is a rank in the taxonomic hierarchy into which virus species can be classified. Use of the taxonomic rank 'subphylum' is optional. If left blank,  lower taxonomic levels of have not been assigned to a subphylum.The subphylum rank suffix is ""-viricotina"".",,
+I,Class,"A  'class' is a rank in the taxonomic hierarchy into which virus species can be classified. Use of the taxonomic rank 'class' is optional. If left blank,  lower taxonomic levels of have not been assigned to a class.The class rank suffix is ""-viricetes"".",,
+J,Subclass,"A  'subclass' is a rank in the taxonomic hierarchy into which virus species can be classified. Use of the taxonomic rank 'subclass' is optional. If left blank,  lower taxonomic levels of have not been assigned to a subclass.The subclass rank suffix is ""-viricetidae"".",,
+K,Order,"An  'order' is a rank in the taxonomic hierarchy into which virus species can be classified. Use of the taxonomic rank 'order' is optional. If left blank,  lower taxonomic levels of have not been assigned to a order. The order rank suffix is ""-virales"".",,
+L,Suborder,"A  'suborder' is a rank in the taxonomic hierarchy into which virus species can be classified. Use of the taxonomic rank 'suborder' is optional. If left blank,  lower taxonomic levels of have not been assigned to a suborder.The suborder rank suffix is ""-virineae"".",,
+M,Family,"A  'family' is a rank in the taxonomic hierarchy into which virus species can be classified. Use of the taxonomic rank 'family' is optional. If left blank,  lower taxonomic levels of have not been assigned to a family.The family rank suffix is ""-viridae"".",,
+N,Subfamily,"A  'subfamily' is a rank in the taxonomic hierarchy into which virus species can be classified. Use of the taxonomic rank 'subfamily' is optional. If left blank,  lower taxonomic levels of have not been assigned to a subfamily.The subfamily rank suffix is ""-virinae"".",,
+O,Genus,"A  'genus' is a rank in the taxonomic hierarchy into which virus species can be classified. Use of the taxonomic rank 'genus' is mandatory. Every species should be assigned to a genus.The genus rank suffix is ""-virus"".",,
+P,Subgenus,"A  'subgenus' is a rank in the taxonomic hierarchy into which virus species can be classified. Use of the taxonomic rank 'subgenus' is optional. If left blank,  species have not been assigned to a subgenus. The genus rank suffix is ""-virus"".",,
+Q,Species,"A 'species' is the lowest taxonomic rank in the hierarchy approved by the ICTV. The species name should have a binomial format. While subspecies levels of classification may exist for some viruses, the ICTV is not currently responsible for the classification of viruses below the species level.",,
+R,Exemplar or additional isolate,"One 'Exemplar virus' is chosen for each species to serve as an example of a well characterized virus. If the value in this column is 'E', this indicates that this virus has been chosen as the exemplar. If the value is 'A', then this virus is an additional representative of the species.",,
+S,Virus name(s),"Commonly used virus name or names, Please use a semi-colon as delimiter if more than one name is given.",,
+T,Virus name abbreviation(s),Commonly used abbreviation(s) of the virus name(s).  Please use a semi-colon as delimiter if more than one abbreviation is given.,,
+U,Virus isolate designation,The designation of the virus isolate (often also referred to as variants or strains). May be empty if there is no physical isolate,,
+V,Virus GENBANK accession,The GenBank (nucleotide) accession number(s) for the exemplar (or additional) virus isolate of the indicated species.  Please use a semi-colon as delimiter if the accession has multiple numbers. ,,
+W,Virus REFSEQ accession,The equivalent RefSeq accession numbers for the GenBank (nucleotide) accession number(s) given in column  V. This column can be left empty if the accession numbers are not (yet) known,,
+X,Genome coverage,"Indicates the genome coverage of the indicated virus. Possible values are:
+- Complete genome
+- Complete coding genome
+- Partial genome",,
+Y,Genome composition,"The molecular and genetic composition of the virus genome packaged into the virion. Possible values are:
+- dsDNA
+- dsDNA-RT
+- dsRNA
+- ssDNA
+- ssDNA(-)
+- ssDNA(+)
+- ssDNA(+/-)
+- ssRNA
+- ssRNA-RT
+- ssRNA(-)
+- ssRNA(+)
+- ssRNA(+/-)",,
+Z,Host/Source,"Indicates the known categories of hosts infected by the virus, or the source [S] environment from which the virus was isolated. Possible values are:
+- algae
+- archaea
+- bacteria
+- fungi
+- invertebrates
+- invertebrates (S)
+- invertebrates, vertebrates
+- marine (S)
+- phytobiome (S)
+- plants
+- plants (S)
+- plants, fungi
+- plants, invertebrates
+- protists
+- protists (S)
+- sewage (S)
+- soil (S)
+- vertebrates",,
+,,,,
+,"See corresponding suffixes for the different ranks of satellite nucleic acids, viroids and viriforms in the ICTV Code (https://ictv.global/about/code) sections V, and VI",,,

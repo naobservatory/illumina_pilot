@@ -1,0 +1,140 @@
+---
+title: "Illumina Viral Structure Analysis"
+author:
+  - name: Simon Grimm
+    url: {simongrimm.com}
+date: 2022-11-14
+description: |
+categories:
+draft: false
+output:
+  bookdown::html_document2:
+    toc: yes
+    toc_float: yes
+    toc_collapsed: yes
+    df_print: paged
+    code_folding: show
+    theme: lumen
+    warning: false
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  cache = TRUE,
+  warning=FALSE,
+  autodep = TRUE,
+  cache.comments = FALSE,
+  dpi = 300
+)
+```
+
+# Introduction
+
+As laid out in [Assessing viral characteristics [exp4.006]] (https://docs.google.com/document/d/1AS-rRlOm9jpylArKqMJRCBNB-BT3bagFg1i3VSFNDOc/edit#), we want to be able to assess the shares of different types of viral genomes in our samples. Specifically we are identifying the share of species that are single-stranded vs double-stranded and RNA vs DNA.
+
+We will work with data acquired in the NAO's initial Illumina runs which were submitted in October 2022. Specifically we work with [.biom files](https://biom-format.org/), acquired from a CZID analysis of our data (link [here](https://czid.org/my_data?currentDisplay=table&currentTab=samples&mapSidebarTab=summary&projectId=4788&showFilters=true&showStats=true&updatedAt=2022-10-07T18%3A28%3A46.867Z&workflow=short-read-mngs),only available when given access. Reach out to simon\@securebio.org if
+you do not have access).
+
+Metadata that links genomic composition with species and their reference sequence identifiers is provided by the International Committee on Taxonomy of Viruses. The dataset is available [here](https://ictv.global/vmr)([Outdated internet archive version](https://web.archive.org/web/20221025202456/https://ictv.global/vmr)) updated this December, that lists ~all viral species, their GENBANK accession, and their Genome composition.
+
+# Setup
+
+## R packages
+
+We start by loading all required R packages:
+
+```{r}
+# set of data analysis and viz tools
+library(tidyverse)
+
+# file system helpers
+library(fs)
+
+# specifying locations within a project
+library(here)
+
+# microbiome analysis helpers
+library(biomformat)
+library(speedyseq)
+library(vegan)
+
+# plotting helpers
+library(cowplot)
+library(patchwork)
+library(ggbeeswarm)
+```
+
+## Defining directories
+
+```{r}
+biom_data_path <- here("data/czid")
+metadata_data_path <- here("data/metadata")
+taxonomy_data_path <- here("data/taxonomy")
+output_data_path <- here("output")
+```
+
+## Data import
+
+```{r, error = TRUE, eval = FALSE}
+# read in the phyloseq object (created in illumina_import_and_datacleaning.Rmd)
+ps <- readRDS(here(output_data_path, "2022_12_08_illumina_phyloseq.Rds"))
+
+taxonomy_gen_comp <- read_csv(path(taxonomy_data_path, 'VMRb37-Table 1.csv'), skip = 1) %>%
+  janitor::clean_names() %>%
+  # remove unused columns
+  select(where(~!all(is.na(.)))) %>%
+  glimpse
+# read in the taxonomy file, skipping the first line
+
+```
+
+## Data exploration
+
+The taxonomy file contains a lot of information, but we are only interested in i) ways to link species identifiers with our data, and ii) the genome composition of the species. For now, let's take a look at the shares of genome composition in the overall metadata table.
+
+```{r}
+taxonomy %>%
+  select(genome_composition) %>%
+  count(genome_composition) %>%
+  mutate(share = n / sum(n)) %>%
+  arrange(desc(share)) %>%
+  print
+```
+
+Our `phyloseq` object consists of several tables, such as the `sample_data` and `tax_table`. We can convert these tables to `tibble` objects, which are easier to work with.
+
+```{r}
+sam <- ps %>% sample_data %>% as_tibble
+tax <- ps %>% tax_table %>% as_tibble
+```
+
+I currently cannot link species names between the phyloseq object and the taxonomy_gen_comp table. Instead we can attempt to find a link at a higher taxonomic level.
+
+Instead I can find the highest taxonomic level at which i) the taxonomy_gen_comp table and the tax table have the same row names, and ii) at which the chosen taxonomic level in the taxonomy_gen_comp table still has only one kind of genome composition per taxa.
+
+```{r}
+tax_virus <- ps  %>%
+            filter_tax_table(superkingdom == "Viruses")  %>%
+            tax_table %>%
+            as_tibble
+
+# tax_virus %>%
+#   select(kingdom:species) %>%
+#   .$kingdom %>%
+#   map_lgl(function(x) {
+#     if (x in taxonomy_gen_comp$class) {
+#       return(TRUE)
+#     } else {
+#       return(FALSE)
+#     }
+# })
+```
+
+```{r}
+norm <- function(x) sqrt(x%*%x)
+norm(4:5)
+```
