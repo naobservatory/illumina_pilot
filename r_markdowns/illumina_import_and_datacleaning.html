@@ -2971,14 +2971,14 @@ biom_text_fixed &lt;- biom_text %&gt;%
   str_replace(&#39;&quot;Table&quot;&#39;, &#39;&quot;Taxon table&quot;&#39;)
 write_file(
   biom_text_fixed,
-  path(biom_data_path, &#39;2022_11_14_Illumina_pilot_nt_r_fixed.biom&#39;)
+  path(output_data_path, &#39;2022_11_14_Illumina_pilot_nt_r_fixed.biom&#39;)
 )</code></pre>
 <p>The above chunk reads in the BIOM file’s contents as a single string,
 checks that ‘“Table”’ appears only once (in the field where it is set as
 the type), then replaces it with ‘“Taxon table”’), then writes the
 string as a new BIOM file. We should now be able to load the corrected
 BIOM file with the <code>biomformat</code> package,</p>
-<pre class="r"><code>biom &lt;- path(biom_data_path, &#39;2022_11_14_Illumina_pilot_nt_r_fixed.biom&#39;) %&gt;% read_biom() %&gt;%
+<pre class="r"><code>biom &lt;- path(output_data_path, &#39;2022_11_14_Illumina_pilot_nt_r_fixed.biom&#39;) %&gt;% read_biom() %&gt;%
   print</code></pre>
 <pre><code>## biom object. 
 ## type: Taxon table 
@@ -3294,9 +3294,9 @@ quality of our sequencing runs, before any computational processing.</p>
 <p>When attempting to read in our <code>multiqc_data.json</code> file, either with
 <code>TidyMultiqc::load_multiqc</code> or with <code>jsonlite::read_json()</code>, we get an
 error with the following message:</p>
-<pre><code>Error in parse_con(txt, bigint_as_char) : 
+<pre><code>Error in parse_con(txt, bigint_as_char) :
 lexical error: invalid char in json text.
-NaN, 
+NaN,
 (right here) ------^</code></pre>
 <p>After some digging this error is <a href="https://github.com/ewels/MultiQC/issues/1509">found to
 be</a> caused by the

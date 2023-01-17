@@ -1,0 +1,142 @@
+---
+title: "Illumina Kraken 2 Analysis"
+author:
+  - name: Simon Grimm
+    url: {simongrimm.com}
+date: 2022-11-14
+description: |
+categories:
+draft: false
+output:
+  bookdown::html_document2:
+    toc: yes
+    toc_float: yes
+    toc_collapsed: yes
+    df_print: paged
+    code_folding: show
+    theme: lumen
+    warning: false
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  cache = TRUE,
+  warning=FALSE,
+  autodep = TRUE,
+  cache.comments = FALSE,
+  engine.opts = list(bash = "-l"),
+  dpi = 300
+)
+```
+
+# Introduction
+
+Here we briefly import, format, and clean kraken2 results of our Illumina data.
+
+# Setup
+
+## R packages
+
+We start by loading all required R packages:
+
+```{r}
+# set of data analysis and viz tools
+library(tidyverse)
+
+# file system helpers
+library(fs)
+library(googlesheets4)
+
+# specifying locations within a project
+library(here)
+
+# microbiome analysis helpers
+library(biomformat)
+library(speedyseq)
+library(vegan)
+
+# plotting helpers
+library(cowplot)
+library(patchwork)
+library(ggbeeswarm)
+```
+
+## Defining directories
+
+```{r}
+biom_data_path <- here("data/czid")
+metadata_data_path <- here("data/metadata")
+kraken_data_path <- here("data/kraken_reports")
+output_data_path <- here("output")
+```
+
+## Data import
+
+### Metadata
+We first read in the metadata for all samples. This table is in a manually curated google sheet, available under this [link](https://docs.google.com/spreadsheets/d/1a7BHgb0_NPgey61IHlsF-RP2_EBhAUyW4e377oHQs1k/edit):
+
+```{r}
+#Reading in metadata from this google sheet link:
+sample_metadata <- read_sheet(
+  'https://docs.google.com/spreadsheets/d/1a7BHgb0_NPgey61IHlsF-RP2_EBhAUyW4e377oHQs1k/edit') %>%
+  janitor::clean_names() %>%
+  glimpse
+```
+
+### Kraken2 reports
+The code below reads in each kraken report into an R data table. This code could be made more efficient by using a loop which I will add later.
+
+We also assign column names to the data tables.
+
+ - clade_coverage: Percentage of fragments covered by the clade rooted at this taxon
+ - fragments_covered: Number of fragments covered by the clade rooted at this taxon
+ - fragments_assigned: Number of fragments assigned directly to this taxon
+ - rank_code: A rank code indicating (U)nclassified, (R)oot, (D)omain, (K)ingdom, (P)hylum, (C)lass,
+(O)rder, (F)amily, (G)enus, (S)pecies. Taxa that are not any of these 10 ranks have a
+rank code that is formed by using the rank code of the closest ancestor rank with a
+number indicating the distance from that rank. Ex. Lampyrinae has a rank code of
+“F1” because it is a subfamily one step below Lampyridae (the firefly family).
+ - ncbi_tax_id: The Taxonomic ID number from NCBI
+ - scientific_name: Indented Scientific Name
+
+```{r}
+col_names <- c('clade_coverage',
+              'fragments_covered',
+              'fragments_assigned',
+              'rank_code',
+              'ncbi_tax_id',
+              'scientific_name'
+              )
+
+report_10330 <- read.table(
+  path(kraken_data_path, "10330_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
+report_10170 <- read.table(
+  path(kraken_data_path, "10170_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
+report_10172 <- read.table(
+  path(kraken_data_path, "10172_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
+report_10175 <- read.table(
+  path(kraken_data_path, "10175_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
+report_10176 <- read.table(
+  path(kraken_data_path, "10176_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
+report_10180 <- read.table(
+  path(kraken_data_path, "10180_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
+report_10330 <- read.table(
+  path(kraken_data_path, "10330_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
+report_10331 <- read.table(
+  path(kraken_data_path, "10331_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
+report_10332 <- read.table(
+  path(kraken_data_path, "10332_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
+report_10333 <- read.table(
+  path(kraken_data_path, "10333_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
+report_10334 <- read.table(
+  path(kraken_data_path, "10334_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
+report_10335 <- read.table(
+  path(kraken_data_path, "10335_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
+report_10336 <- read.table(
+  path(kraken_data_path, "10336_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
+```
+

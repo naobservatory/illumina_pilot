@@ -360,7 +360,7 @@ different, equally abundant species. Let's take a closer look at this
 below (code taken from this [blog
 post](https://jonlefcheck.net/2012/10/23/diversity-as-effective-numbers/))
 
-#### 
+####
 
 ```{r}
 community1=data.frame(t(rep(1,100))); colnames(community1)=paste("sp",1:100) #The `;` seperates two commands that would normally need be in different lines.
