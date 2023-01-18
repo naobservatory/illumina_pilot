@@ -544,13 +544,6 @@ identified species have an assigned kingdom.
 Fixing this might be important, as we could be interested in analyzing
 samples on a kingdom level.
 
-```{r}
-
-```
-```{r}
-
-```
-
 
 ```{r}
 tax %>%

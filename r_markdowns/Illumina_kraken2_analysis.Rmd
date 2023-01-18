@@ -140,3 +140,130 @@ report_10336 <- read.table(
   path(kraken_data_path, "10336_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
 ```
 
+One thing I could do: Filter down to species level. Use ncbitaxid as feature identifier. Use second column as count.
+
+pivot wider.
+
+feature id, sample id, abundance.
+
+1. as dataframe
+2. assign first column as row names
+3. dataframe
+
+
+Other option: use cbind function.
+
+Another option left_join
+
+Each row is the file name.
+
+Look into metacal function called build_matrix (look at source code).
+
+as(matrix)
+
+Matrix has one limitation, every variable has to have the same type.
+
+
+
+In our work here we want to end up with an abundance table. This table has as its first row an OTU (either ncbi_tax_id, or species name, and the individual abundances per sample as the following columns. For reference here is the otu_table of our CZID data:
+```{r}
+ps <- readRDS(here(output_data_path, "2022_12_08_illumina_phyloseq.Rds"))
+
+otu_czid <- ps %>%
+    otu_table()
+```
+
+To get where we want we first need to take a look at how our kraken2 dataframes look like.
+
+```{r}
+report_10330  %>%
+   glimpse()
+```
+
+From this table we can see that we have a lot of information that we don't need. We only need the ncbi_tax_id and the fragments_assigned, filtering down to rank_code = S. We can filter down to these columns using the select function.
+
+Again, I would need to identify a way to create for loops for environemntal variables. I gave it a shot here, but the resulting code didn't work:
+
+```{r}
+report_names <- ls() %>%
+  grep("report_", ., value = TRUE)
+
+report_names %>%
+  lapply(function(x) {
+    x %>%
+    filter(rank_code == "S") %>%
+    select(ncbi_tax_id, fragments_covered)
+  })
+```
+
+Instead I wrote this:
+
+```{r}
+
+species_10170 <- report_10170 %>%
+  filter(rank_code == "S") %>%
+  select(ncbi_tax_id, fragments_covered) # %>%
+  # set the first column as row names
+  # column_to_rownames(., var = "ncbi_tax_id")
+
+species_10172 <- report_10172 %>%
+  filter(rank_code == "S")  %>%
+  select(ncbi_tax_id, fragments_covered)
+
+species_10175 <- report_10175 %>%
+  filter(rank_code == "S")  %>%
+  select(ncbi_tax_id, fragments_covered)
+
+species_10176 <- report_10176 %>%
+  filter(rank_code == "S")  %>%
+  select(ncbi_tax_id, fragments_covered)
+
+species_10180 <- report_10180 %>%
+  filter(rank_code == "S")  %>%
+  select(ncbi_tax_id, fragments_covered)
+
+species_10330 <- report_10330 %>%
+  filter(rank_code == "S")  %>%
+  select(ncbi_tax_id, fragments_covered)
+
+species_10331 <- report_10331 %>%
+  filter(rank_code == "S")  %>%
+  select(ncbi_tax_id, fragments_covered)
+
+species_10332 <- report_10332 %>%
+  filter(rank_code == "S")  %>%
+  select(ncbi_tax_id, fragments_covered)
+
+species_10333 <- report_10333 %>%
+  filter(rank_code == "S")  %>%
+  select(ncbi_tax_id, fragments_covered)
+
+species_10334 <- report_10334 %>%
+  filter(rank_code == "S")  %>%
+  select(ncbi_tax_id, fragments_covered)
+
+species_10335 <- report_10335 %>%
+  filter(rank_code == "S")  %>%
+  select(ncbi_tax_id, fragments_covered)
+
+species_10336 <- report_10336 %>%
+  filter(rank_code == "S")  %>%
+  select(ncbi_tax_id, fragments_covered)
+```
+
+
+Now we need to merge all of these dataframes into one. We can do this using the cbind function.
+
+```{r}
+species_list <- list(species_10170, species_10172, species_10175,
+                    species_10176, species_10180, species_10330,
+                    species_10331, species_10332, species_10333,
+                    species_10334, species_10335, species_10336
+                    )
+
+otu_kraken <- Reduce(function(x, y) full_join(x, y, by = 'ncbi_tax_id', all = TRUE), species_list)
+
+otu_kraken <- otu_kraken %>%
+  column_to_rownames(., var = "ncbi_tax_id")
+```
+
