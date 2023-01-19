@@ -25,7 +25,7 @@ editor_options:
 knitr::opts_chunk$set(
   echo = TRUE,
   cache = TRUE,
-  warning=FALSE,
+  warning= FALSE,
   autodep = TRUE,
   cache.comments = FALSE,
   engine.opts = list(bash = "-l"),
@@ -71,6 +71,7 @@ library(ggbeeswarm)
 biom_data_path <- here("data/czid")
 metadata_data_path <- here("data/metadata")
 kraken_data_path <- here("data/kraken_reports")
+taxonomy_data_path <- here("data/taxonomy")
 output_data_path <- here("output")
 ```
 
@@ -140,39 +141,42 @@ report_10336 <- read.table(
   path(kraken_data_path, "10336_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
 ```
 
-One thing I could do: Filter down to species level. Use ncbitaxid as feature identifier. Use second column as count.
+### Tax table
 
-pivot wider.
-
-feature id, sample id, abundance.
-
-1. as dataframe
-2. assign first column as row names
-3. dataframe
-
-
-Other option: use cbind function.
-
-Another option left_join
-
-Each row is the file name.
-
-Look into metacal function called build_matrix (look at source code).
-
-as(matrix)
-
-Matrix has one limitation, every variable has to have the same type.
-
-
-
-In our work here we want to end up with an abundance table. This table has as its first row an OTU (either ncbi_tax_id, or species name, and the individual abundances per sample as the following columns. For reference here is the otu_table of our CZID data:
 ```{r}
-ps <- readRDS(here(output_data_path, "2022_12_08_illumina_phyloseq.Rds"))
-
-otu_czid <- ps %>%
-    otu_table()
+taxonomy_gen_comp <- read_csv(path(taxonomy_data_path, 'VMRb37-Table 1.csv'), skip = 1) %>%
+  janitor::clean_names() %>%
+  # remove unused columns
+  select(where(~!all(is.na(.)))) %>%
+  glimpse
 ```
 
+
+**Action**
+We need a common identifier between species in the ictv metadata table (`taxonomy_gen_comp`)and the kraken2 reports. We can either try to join on species name, or, ideally join by getting ncbi_tax_ids for each species in the ictv taxonomy table.
+
+
+The following command gives you a database, containing accessions and taxids. Problem is that the unzipped version is around 12 GB large. I could look into [using taxonomizr](https://rdrr.io/cran/taxonomizr/f/vignettes/usage.Rmd) to pullout the desired tax_ids.
+
+```{r}
+library(taxonomizr)
+# getAccession2taxid(
+#   outDir = path(taxonomy_data_path),
+#   baseUrl = "ftp://ftp.ncbi.nih.gov/pub/taxonomy/accession2taxid/",
+#   types = c("nucl_gb")
+# )
+```
+
+Printing the first 5 lines of the resulting nucl_gb.accession2taxid in terminal gives us the following output:
+``
+accession	accession.version	taxid	gi
+A00001	A00001.1	10641	58418
+A00002	A00002.1	9913	2
+A00003	A00003.1	9913	3
+A00004	A00004.1	32630	57971
+``
+
+## Creating an otu table from the kraken2 reports
 To get where we want we first need to take a look at how our kraken2 dataframes look like.
 
 ```{r}
@@ -182,6 +186,8 @@ report_10330  %>%
 
 From this table we can see that we have a lot of information that we don't need. We only need the ncbi_tax_id and the fragments_assigned of all species. We can filter down to these columns using the select function and filter down to the species level using the filter function.
 
+We combine these steps in a function called fun_subset_otu_table.
+
 **ACTION** The final line of code in the function below should rename the fragments_covered column to the sample name. Using deparse(substitute(.))
 ```{r}
 kraken_reports <- list(report_10170, report_10172, report_10175,
@@ -190,24 +196,14 @@ kraken_reports <- list(report_10170, report_10172, report_10175,
                     report_10334, report_10335, report_10336
                     )
 
-# Creating a function that filters down to species level and selects the ncbi_tax_id and fragments_covered columns
 fun_subset_otu_table <- function(x){
-  new_column_name <- deparse(substitute(x))
-  test <- x %>%
+  x <- x %>%
     filter(rank_code == "S") %>%
-
-    select(ncbi_tax_id, fragments_covered) %>%
+    select(ncbi_tax_id, fragments_covered)
     # Renaming the fragments_covered column to the sample name
-    rename(new_column_name = fragments_covered)
+    # rename(deparse(substitute(x)) = fragments_covered)
 }
 ```
-
-```{r}
-kraken_reports_new_columns <- lapply(kraken_reports, fun_rename_column_to_sample_name)
-
-```
-
-
 
 Applying the function to each report in kraken_reports, creating a new list of reports called kraken_reports_subset.
 ```{r}
@@ -216,97 +212,29 @@ kraken_reports_subset <- lapply(kraken_reports, fun_subset_otu_table)
 
 Comparing the first report in kraken_reports_subset to the first report in kraken_reports:
 ```{r}
-
 kraken_reports_subset[1] %>% glimpse()
 
 kraken_reports[1] %>% glimpse()
-```
-
-```{r}
-otu_kraken <- Reduce(
-  function(x, y) full_join(x, y, by = 'ncbi_tax_id', all = TRUE),
-  kraken_reports_subset
-)
-
-otu_kraken_new_columns <-
-  function(x, y) full_join(x, y, by = 'ncbi_tax_id', all = TRUE),
-  kraken_reports_new_columns
-)
-```
-
-
-```{r}
-species_10170 <- report_10170 %>%
-  filter(rank_code == "S") %>%
-  select(ncbi_tax_id, fragments_covered) # %>%
-  # rename the fragments_covered column to the sample name
-  col_names(.)
-  # set the first column as row names
-  # column_to_rownames(., var = "ncbi_tax_id")
-
-species_10172 <- report_10172 %>%
-  filter(rank_code == "S")  %>%
-  select(ncbi_tax_id, fragments_covered)
-
-species_10175 <- report_10175 %>%
-  filter(rank_code == "S")  %>%
-  select(ncbi_tax_id, fragments_covered)
-
-species_10176 <- report_10176 %>%
-  filter(rank_code == "S")  %>%
-  select(ncbi_tax_id, fragments_covered)
-
-species_10180 <- report_10180 %>%
-  filter(rank_code == "S")  %>%
-  select(ncbi_tax_id, fragments_covered)
-
-species_10330 <- report_10330 %>%
-  filter(rank_code == "S")  %>%
-  select(ncbi_tax_id, fragments_covered)
-
-species_10331 <- report_10331 %>%
-  filter(rank_code == "S")  %>%
-  select(ncbi_tax_id, fragments_covered)
-
-species_10332 <- report_10332 %>%
-  filter(rank_code == "S")  %>%
-  select(ncbi_tax_id, fragments_covered)
-
-species_10333 <- report_10333 %>%
-  filter(rank_code == "S")  %>%
-  select(ncbi_tax_id, fragments_covered)
-
-species_10334 <- report_10334 %>%
-  filter(rank_code == "S")  %>%
-  select(ncbi_tax_id, fragments_covered)
-
-species_10335 <- report_10335 %>%
-  filter(rank_code == "S")  %>%
-  select(ncbi_tax_id, fragments_covered)
-
-species_10336 <- report_10336 %>%
-  filter(rank_code == "S")  %>%
-  select(ncbi_tax_id, fragments_covered)
-```
-
-
-Now we need to merge all of these dataframes into one. We can do this using the cbind function.
-
-```{r}
-
-
 ```
 Now we use the Reduce function to successively apply a function to the elements of a list.
 In a more general example this looks the following way:
 l_1 = f(v1 ,v2)
 l_2 = f(l_1, v_3)
-
 ```{r}
-# Creating otu_kraken by successively applying the full_join function each ssubs
 otu_kraken <- Reduce(
   function(x, y) full_join(x, y, by = 'ncbi_tax_id', all = TRUE),
-  species_list)
+  kraken_reports_subset
+)
+```
 
-otu_kraken <- otu_kraken %>%
-  column_to_rownames(., var = "ncbi_tax_id")
+## Building the phyloseq object
+
+Now that we have both our metadata and our otu table we can build our phyloseq object. We start by creating a sample_data object from our metadata dataframe.
+
+**ACTION** Code is not working yet. Likely due to mismatches (of unknown nature) between the otu_table and the sample_data. Also, the tax_table still needs to be created, as outlined earlier.
+```{r}
+#ps <- phyloseq(
+#  otu_table(otu_kraken %>% as.matrix, taxa_are_rows = TRUE),
+#  sample_data(sample_metadata)
+#)
 ```
