@@ -143,6 +143,10 @@ report_10336 <- read.table(
 
 ### Tax table
 
+We could create the tax table either by inferring the taxonomy from the kraken2 reports, or by using the ictv taxonomy table. I will try both approaches.
+
+#### ICTV Taxonomy
+
 ```{r}
 taxonomy_gen_comp <- read_csv(path(taxonomy_data_path, 'VMRb37-Table 1.csv'), skip = 1) %>%
   janitor::clean_names() %>%
@@ -175,6 +179,8 @@ A00002	A00002.1	9913	2
 A00003	A00003.1	9913	3
 A00004	A00004.1	32630	57971
 ``
+#### Kraken Taxonomy
+
 
 ## Creating an otu table from the kraken2 reports
 To get where we want we first need to take a look at how our kraken2 dataframes look like.
