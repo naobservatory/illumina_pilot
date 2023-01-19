@@ -180,29 +180,67 @@ report_10330  %>%
    glimpse()
 ```
 
-From this table we can see that we have a lot of information that we don't need. We only need the ncbi_tax_id and the fragments_assigned, filtering down to rank_code = S. We can filter down to these columns using the select function.
+From this table we can see that we have a lot of information that we don't need. We only need the ncbi_tax_id and the fragments_assigned of all species. We can filter down to these columns using the select function and filter down to the species level using the filter function.
 
-Again, I would need to identify a way to create for loops for environemntal variables. I gave it a shot here, but the resulting code didn't work:
-
+**ACTION** The final line of code in the function below should rename the fragments_covered column to the sample name. Using deparse(substitute(.))
 ```{r}
-report_names <- ls() %>%
-  grep("report_", ., value = TRUE)
+kraken_reports <- list(report_10170, report_10172, report_10175,
+                    report_10176, report_10180, report_10330,
+                    report_10331, report_10332, report_10333,
+                    report_10334, report_10335, report_10336
+                    )
 
-report_names %>%
-  lapply(function(x) {
-    x %>%
+# Creating a function that filters down to species level and selects the ncbi_tax_id and fragments_covered columns
+fun_subset_otu_table <- function(x){
+  new_column_name <- deparse(substitute(x))
+  test <- x %>%
     filter(rank_code == "S") %>%
-    select(ncbi_tax_id, fragments_covered)
-  })
+
+    select(ncbi_tax_id, fragments_covered) %>%
+    # Renaming the fragments_covered column to the sample name
+    rename(new_column_name = fragments_covered)
+}
 ```
 
-Instead I wrote this:
+```{r}
+kraken_reports_new_columns <- lapply(kraken_reports, fun_rename_column_to_sample_name)
 
+```
+
+
+
+Applying the function to each report in kraken_reports, creating a new list of reports called kraken_reports_subset.
+```{r}
+kraken_reports_subset <- lapply(kraken_reports, fun_subset_otu_table)
+```
+
+Comparing the first report in kraken_reports_subset to the first report in kraken_reports:
 ```{r}
 
+kraken_reports_subset[1] %>% glimpse()
+
+kraken_reports[1] %>% glimpse()
+```
+
+```{r}
+otu_kraken <- Reduce(
+  function(x, y) full_join(x, y, by = 'ncbi_tax_id', all = TRUE),
+  kraken_reports_subset
+)
+
+otu_kraken_new_columns <-
+  function(x, y) full_join(x, y, by = 'ncbi_tax_id', all = TRUE),
+  kraken_reports_new_columns
+)
+```
+
+
+```{r}
 species_10170 <- report_10170 %>%
   filter(rank_code == "S") %>%
   select(ncbi_tax_id, fragments_covered) # %>%
+  # rename the fragments_covered column to the sample name
+  col_names(.)
   # set the first column as row names
   # column_to_rownames(., var = "ncbi_tax_id")
 
@@ -255,15 +293,20 @@ species_10336 <- report_10336 %>%
 Now we need to merge all of these dataframes into one. We can do this using the cbind function.
 
 ```{r}
-species_list <- list(species_10170, species_10172, species_10175,
-                    species_10176, species_10180, species_10330,
-                    species_10331, species_10332, species_10333,
-                    species_10334, species_10335, species_10336
-                    )
 
-otu_kraken <- Reduce(function(x, y) full_join(x, y, by = 'ncbi_tax_id', all = TRUE), species_list)
+
+```
+Now we use the Reduce function to successively apply a function to the elements of a list.
+In a more general example this looks the following way:
+l_1 = f(v1 ,v2)
+l_2 = f(l_1, v_3)
+
+```{r}
+# Creating otu_kraken by successively applying the full_join function each ssubs
+otu_kraken <- Reduce(
+  function(x, y) full_join(x, y, by = 'ncbi_tax_id', all = TRUE),
+  species_list)
 
 otu_kraken <- otu_kraken %>%
   column_to_rownames(., var = "ncbi_tax_id")
 ```
-
