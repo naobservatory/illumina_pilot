@@ -28,7 +28,7 @@ with open(kraken_report) as inf:
             if kraken_line.has_children:
                 return
 
-            print("%s\t%s" % (
+            outf.write("%s\t%s\n" % (
                 kraken_line.taxid,
                 "::".join(active_species(kraken_line.sciname))))
         
