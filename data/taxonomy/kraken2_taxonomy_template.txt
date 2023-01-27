@@ -1,0 +1,13 @@
+d__Viruses	0
+d__Viruses|o__Ligamenvirales		0
+d__Viruses|o__Ligamenvirales|f__Lipothrixviridae	0
+d__Viruses|o__Ligamenvirales|f__Lipothrixviridae|g__Betalipothrixvirus	0
+d__Viruses|o__Ligamenvirales|f__Lipothrixviridae|g__Betalipothrixvirus|s__Sulfolobus islandicus filamentous virus	0
+d__Viruses|o__Ligamenvirales|f__Lipothrixviridae|g__Betalipothrixvirus|s__Acidianus filamentous virus 3	0
+d__Viruses|o__Ligamenvirales|f__Lipothrixviridae|g__Betalipothrixvirus|s__Acidianus filamentous virus 6	0
+d__Viruses|o__Ligamenvirales|f__Lipothrixviridae|g__Betalipothrixvirus|s__Acidianus filamentous virus 7	0
+d__Viruses|o__Ligamenvirales|f__Lipothrixviridae|g__Betalipothrixvirus|s__Acidianus filamentous virus 8	0
+d__Viruses|o__Ligamenvirales|f__Lipothrixviridae|g__Gammalipothrixvirus	0
+d__Viruses|o__Ligamenvirales|f__Lipothrixviridae|g__Gammalipothrixvirus|s__Acidianus filamentous virus 1	0
+d__Viruses|o__Ligamenvirales|f__Lipothrixviridae|g__Deltalipothrixvirus	0
+d__Viruses|o__Ligamenvirales|f__Lipothrixviridae|g__Deltalipothrixvirus|s__Acidianus filamentous virus

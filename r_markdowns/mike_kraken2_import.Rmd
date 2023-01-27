@@ -1,0 +1,171 @@
+---
+title: "Illumina Kraken 2 Analysis"
+author:
+  - name: Simon Grimm
+    url: {simongrimm.com}
+date: 2022-11-14
+description: |
+categories:
+draft: false
+output:
+  bookdown::html_document2:
+    toc: yes
+    toc_float: yes
+    toc_collapsed: yes
+    df_print: paged
+    code_folding: show
+    theme: lumen
+    warning: false
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  cache = TRUE,
+  warning= FALSE,
+  autodep = TRUE,
+  cache.comments = FALSE,
+  engine.opts = list(bash = "-l"),
+  dpi = 300
+)
+```
+
+# Introduction
+
+Here we briefly import, format, and clean kraken2 results of our Illumina data.
+
+# Setup
+
+## R packages
+
+We start by loading all required R packages:
+
+```{r}
+# set of data analysis and viz tools
+library(tidyverse)
+
+# file system helpers
+library(fs)
+library(googlesheets4)
+
+# specifying locations within a project
+library(here)
+
+# microbiome analysis helpers
+library(biomformat)
+library(speedyseq)
+library(vegan)
+
+# plotting helpers
+library(cowplot)
+library(patchwork)
+library(ggbeeswarm)
+```
+
+## Defining directories
+
+```{r}
+biom_data_path <- here("data/czid")
+metadata_data_path <- here("data/metadata")
+kraken_data_path <- here("data/kraken_reports")
+taxonomy_data_path <- here("data/taxonomy")
+output_data_path <- here("output")
+```
+
+```{r}
+library(here)
+library(tidyverse)
+library(fs)
+library(speedyseq)
+library(cowplot)
+theme_set(theme_cowplot())
+# Location of the kraken2 output files
+project_path <- here('../illumina_pilot')
+```
+
+
+From Simon's Readme:
+
+> 1) Percentage of fragments covered by the clade rooted at this taxon
+> 2) Number of fragments covered by the clade rooted at this taxon
+> 3) Number of fragments assigned directly to this taxon
+> 4) A rank code indicating (U)nclassified, (R)oot, (D)omain, (K)ingdom, (P)hylum, (C)lass,
+> (O)rder, (F)amily, (G)enus, (S)pecies. Taxa that are not any of these 10 ranks have a
+> rank code that is formed by using the rank code of the closest ancestor rank with a
+> number indicating the distance from that rank. Ex. Lampyrinae has a rank code of
+> “F1” because it is a subfamily one step below Lampyridae (the firefly family).
+> 5) The Taxonomic ID number from NCBI
+> 6) Indented Scientific Name
+```{r}
+fns <- path(project_path, 'data/kraken_reports') %>%
+  dir_ls(glob = '*_kraken2_report.txt')
+read_kraken_report <- function(file) {
+  cns <- c('percent', 'num_clade', 'num_taxon', 'rank_code', 'tax_id',
+           'scientific_name')
+  cts <- cols(
+    percent = col_double(),
+    num_clade = col_integer(),
+    num_taxon = col_integer(),
+    rank_code = col_character(),
+    tax_id = col_integer(),
+    scientific_name = col_character()
+  )
+  read_tsv(file, col_names = cns, col_types = cts)
+}
+x <- tibble(file = fns) %>%
+  mutate(
+    sample = str_extract(
+      file %>% path_file,
+      '^.*(?=_kraken2_report.txt)'
+    ),
+    results = map(file, ~read_kraken_report(.x))
+  ) %>%
+  unnest(results) %>%
+  select(-file) %>%
+  glimpse
+```
+
+Another way to do it:
+
+```{r, eval = F}
+names(fns) <- str_extract(fns %>% path_file, '^.*(?=_kraken2_report.txt)')
+names(fns)
+y <- map_dfr(fns, read_kraken_report, .id = 'sample')
+# Same as:
+y <- map_dfr(fns, ~read_kraken_report(.x), .id = 'sample')
+```
+
+Can now (for example) look at the abundance of a single species across samples,
+
+```{r}
+x %>%
+  filter(rank_code == 'S',
+         scientific_name == 'Escherichia coli') %>%
+  glimpse
+```
+
+and visualize the proportions of different domains,
+
+```{r}
+x %>%
+  filter(rank_code == 'D') %>%
+  ggplot(aes(x = sample, y = percent, fill = scientific_name)) +
+  geom_col()
+```
+
+```{r}
+x %>%
+  filter(rank_code == 'D') %>%
+  ggplot(aes(y = sample, x = percent, color = scientific_name)) +
+  theme_minimal_hgrid() +
+  scale_x_log10() +
+  geom_point()
+```
+
+TODO:
+
+* Integrate the sample metadata
+* Obtain the full taxonomy for each taxonomic feature
