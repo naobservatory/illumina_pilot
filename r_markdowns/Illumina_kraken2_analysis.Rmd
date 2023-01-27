@@ -1,5 +1,5 @@
 ---
-title: "Illumina Kraken 2 Analysis"
+title: "Illumina Kraken 2 Import"
 author:
   - name: Simon Grimm
     url: {simongrimm.com}
@@ -35,7 +35,18 @@ knitr::opts_chunk$set(
 
 # Introduction
 
-Here we briefly import, format, and clean kraken2 results of our Illumina data.
+Here we import, format, and clean kraken2 results of our Illumina data.
+
+# Setup
+
+# Introduction
+
+As laid out in [Assessing viral characteristics [exp4.006]] (https://docs.google.com/document/d/1AS-rRlOm9jpylArKqMJRCBNB-BT3bagFg1i3VSFNDOc/edit#), we want to be able to assess the shares of different types of viral genomes in our samples. Specifically we are identifying the share of species that are single-stranded vs double-stranded and RNA vs DNA.
+
+We will work with data acquired in the NAO's initial Illumina runs which were submitted in October 2022. Specifically we work with [.biom files](https://biom-format.org/), acquired from a CZID analysis of our data (link [here](https://czid.org/my_data?currentDisplay=table&currentTab=samples&mapSidebarTab=summary&projectId=4788&showFilters=true&showStats=true&updatedAt=2022-10-07T18%3A28%3A46.867Z&workflow=short-read-mngs),only available when given access. Reach out to simon\@securebio.org if
+you do not have access).
+
+Metadata that links genomic composition with species and their reference sequence identifiers is provided by the International Committee on Taxonomy of Viruses. The dataset is available [here](https://ictv.global/vmr)([Outdated internet archive version](https://web.archive.org/web/20221025202456/https://ictv.global/vmr)) updated this December, that lists ~all viral species, their GENBANK accession, and their Genome composition.
 
 # Setup
 
@@ -49,7 +60,6 @@ library(tidyverse)
 
 # file system helpers
 library(fs)
-library(googlesheets4)
 
 # specifying locations within a project
 library(here)
@@ -70,177 +80,63 @@ library(ggbeeswarm)
 ```{r}
 biom_data_path <- here("data/czid")
 metadata_data_path <- here("data/metadata")
-kraken_data_path <- here("data/kraken_reports")
 taxonomy_data_path <- here("data/taxonomy")
 output_data_path <- here("output")
 ```
 
 ## Data import
 
-### Metadata
-We first read in the metadata for all samples. This table is in a manually curated google sheet, available under this [link](https://docs.google.com/spreadsheets/d/1a7BHgb0_NPgey61IHlsF-RP2_EBhAUyW4e377oHQs1k/edit):
+```{r, error = TRUE, eval = FALSE}
+# read in the phyloseq object (created in illumina_import_and_datacleaning.Rmd)
+ps <- readRDS(here(output_data_path, "2022_12_08_illumina_phyloseq.Rds"))
 
-```{r}
-#Reading in metadata from this google sheet link:
-sample_metadata <- read_sheet(
-  'https://docs.google.com/spreadsheets/d/1a7BHgb0_NPgey61IHlsF-RP2_EBhAUyW4e377oHQs1k/edit') %>%
-  janitor::clean_names() %>%
-  glimpse
-```
-
-### Kraken2 reports
-The code below reads in each kraken report into an R data table. This code could be made more efficient by using a loop which I will add later.
-
-We also assign column names to the data tables.
-
- - clade_coverage: Percentage of fragments covered by the clade rooted at this taxon
- - fragments_covered: Number of fragments covered by the clade rooted at this taxon
- - fragments_assigned: Number of fragments assigned directly to this taxon
- - rank_code: A rank code indicating (U)nclassified, (R)oot, (D)omain, (K)ingdom, (P)hylum, (C)lass,
-(O)rder, (F)amily, (G)enus, (S)pecies. Taxa that are not any of these 10 ranks have a
-rank code that is formed by using the rank code of the closest ancestor rank with a
-number indicating the distance from that rank. Ex. Lampyrinae has a rank code of
-“F1” because it is a subfamily one step below Lampyridae (the firefly family).
- - ncbi_tax_id: The Taxonomic ID number from NCBI
- - scientific_name: Indented Scientific Name
-
-```{r}
-col_names <- c('clade_coverage',
-              'fragments_covered',
-              'fragments_assigned',
-              'rank_code',
-              'ncbi_tax_id',
-              'scientific_name'
-              )
-
-report_10330 <- read.table(
-  path(kraken_data_path, "10330_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
-report_10170 <- read.table(
-  path(kraken_data_path, "10170_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
-report_10172 <- read.table(
-  path(kraken_data_path, "10172_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
-report_10175 <- read.table(
-  path(kraken_data_path, "10175_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
-report_10176 <- read.table(
-  path(kraken_data_path, "10176_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
-report_10180 <- read.table(
-  path(kraken_data_path, "10180_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
-report_10330 <- read.table(
-  path(kraken_data_path, "10330_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
-report_10331 <- read.table(
-  path(kraken_data_path, "10331_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
-report_10332 <- read.table(
-  path(kraken_data_path, "10332_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
-report_10333 <- read.table(
-  path(kraken_data_path, "10333_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
-report_10334 <- read.table(
-  path(kraken_data_path, "10334_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
-report_10335 <- read.table(
-  path(kraken_data_path, "10335_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
-report_10336 <- read.table(
-  path(kraken_data_path, "10336_kraken2_report.txt"), sep="\t", col.names = col_names, header=FALSE)
-```
-
-### Tax table
-
-We could create the tax table either by inferring the taxonomy from the kraken2 reports, or by using the ictv taxonomy table. I will try both approaches.
-
-#### ICTV Taxonomy
-
-```{r}
 taxonomy_gen_comp <- read_csv(path(taxonomy_data_path, 'VMRb37-Table 1.csv'), skip = 1) %>%
   janitor::clean_names() %>%
   # remove unused columns
   select(where(~!all(is.na(.)))) %>%
   glimpse
+# read in the taxonomy file, skipping the first line
+
 ```
 
+## Data exploration
 
-**Action**
-We need a common identifier between species in the ictv metadata table (`taxonomy_gen_comp`)and the kraken2 reports. We can either try to join on species name, or, ideally join by getting ncbi_tax_ids for each species in the ictv taxonomy table.
-
-
-The following command gives you a database, containing accessions and taxids. Problem is that the unzipped version is around 12 GB large. I could look into [using taxonomizr](https://rdrr.io/cran/taxonomizr/f/vignettes/usage.Rmd) to pullout the desired tax_ids.
+The taxonomy file contains a lot of information, but we are only interested in i) ways to link species identifiers with our data, and ii) the genome composition of the species. For now, let's take a look at the shares of genome composition in the overall metadata table.
 
 ```{r}
-library(taxonomizr)
-# getAccession2taxid(
-#   outDir = path(taxonomy_data_path),
-#   baseUrl = "ftp://ftp.ncbi.nih.gov/pub/taxonomy/accession2taxid/",
-#   types = c("nucl_gb")
-# )
+taxonomy %>%
+  select(genome_composition) %>%
+  count(genome_composition) %>%
+  mutate(share = n / sum(n)) %>%
+  arrange(desc(share)) %>%
+  print
 ```
 
-Printing the first 5 lines of the resulting nucl_gb.accession2taxid in terminal gives us the following output:
-``
-accession	accession.version	taxid	gi
-A00001	A00001.1	10641	58418
-A00002	A00002.1	9913	2
-A00003	A00003.1	9913	3
-A00004	A00004.1	32630	57971
-``
-#### Kraken Taxonomy
-
-
-## Creating an otu table from the kraken2 reports
-To get where we want we first need to take a look at how our kraken2 dataframes look like.
+Our `phyloseq` object consists of several tables, such as the `sample_data` and `tax_table`. We can convert these tables to `tibble` objects, which are easier to work with.
 
 ```{r}
-report_10330  %>%
-   glimpse()
+sam <- ps %>% sample_data %>% as_tibble
+tax <- ps %>% tax_table %>% as_tibble
 ```
 
-From this table we can see that we have a lot of information that we don't need. We only need the ncbi_tax_id and the fragments_assigned of all species. We can filter down to these columns using the select function and filter down to the species level using the filter function.
+I currently cannot link species names between the phyloseq object and the taxonomy_gen_comp table. Instead we can attempt to find a link at a higher taxonomic level.
 
-We combine these steps in a function called fun_subset_otu_table.
+Instead I can find the highest taxonomic level at which i) the taxonomy_gen_comp table and the tax table have the same row names, and ii) at which the chosen taxonomic level in the taxonomy_gen_comp table still has only one kind of genome composition per taxa.
 
-**ACTION** The final line of code in the function below should rename the fragments_covered column to the sample name. Using deparse(substitute(.))
 ```{r}
-kraken_reports <- list(report_10170, report_10172, report_10175,
-                    report_10176, report_10180, report_10330,
-                    report_10331, report_10332, report_10333,
-                    report_10334, report_10335, report_10336
-                    )
+tax_virus <- ps  %>%
+            filter_tax_table(superkingdom == "Viruses")  %>%
+            tax_table %>%
+            as_tibble
 
-fun_subset_otu_table <- function(x){
-  x <- x %>%
-    filter(rank_code == "S") %>%
-    select(ncbi_tax_id, fragments_covered)
-    # Renaming the fragments_covered column to the sample name
-    # rename(deparse(substitute(x)) = fragments_covered)
-}
-```
-
-Applying the function to each report in kraken_reports, creating a new list of reports called kraken_reports_subset.
-```{r}
-kraken_reports_subset <- lapply(kraken_reports, fun_subset_otu_table)
-```
-
-Comparing the first report in kraken_reports_subset to the first report in kraken_reports:
-```{r}
-kraken_reports_subset[1] %>% glimpse()
-
-kraken_reports[1] %>% glimpse()
-```
-Now we use the Reduce function to successively apply a function to the elements of a list.
-In a more general example this looks the following way:
-l_1 = f(v1 ,v2)
-l_2 = f(l_1, v_3)
-```{r}
-otu_kraken <- Reduce(
-  function(x, y) full_join(x, y, by = 'ncbi_tax_id', all = TRUE),
-  kraken_reports_subset
-)
-```
-
-## Building the phyloseq object
-
-Now that we have both our metadata and our otu table we can build our phyloseq object. We start by creating a sample_data object from our metadata dataframe.
-
-**ACTION** Code is not working yet. Likely due to mismatches (of unknown nature) between the otu_table and the sample_data. Also, the tax_table still needs to be created, as outlined earlier.
-```{r}
-#ps <- phyloseq(
-#  otu_table(otu_kraken %>% as.matrix, taxa_are_rows = TRUE),
-#  sample_data(sample_metadata)
-#)
+# tax_virus %>%
+#   select(kingdom:species) %>%
+#   .$kingdom %>%
+#   map_lgl(function(x) {
+#     if (x in taxonomy_gen_comp$class) {
+#       return(TRUE)
+#     } else {
+#       return(FALSE)
+#     }
+# })
 ```
