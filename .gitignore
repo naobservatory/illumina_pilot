@@ -50,6 +50,13 @@ logs/*
 sequences/*
 !sequences/.gitkeep
 
+# Including the output folder without content
+output/*
+!output/.gitkeep
+
+# Excluding VSCode settings
+settings.json
+
 # Content of Slurm output folder
 slurm/czid/*
 slurm/nf-core-mag/*
@@ -58,17 +65,12 @@ slurm/nf-core-mag/*
 !slurm/czid/.gitkeep
 !slurm/nf-core-mag/.gitkeep
 
-<<<<<<< HEAD
-#Excluding raw_fasts due to space constraints
-raw_fastqs/*
-=======
 # Content of FastQC output folder
 fastqc_analyses/raw_sequences/*
 fastqc_analyses/raw_sequences_compressed/
 !fastqc_analyses/raw_sequences_compressed/.gitkeep
 
 
->>>>>>> engaging
 
 #MacOS files
 .DS_Store

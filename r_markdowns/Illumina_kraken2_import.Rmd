@@ -91,13 +91,7 @@ sample_metadata <- read_sheet(
 
 We now read in our Kraken2 reports. Kraken2 is a tool for assigning taxonomic labels to unassembled (raw) DNA sequences. Kraken2 outputs a report for each sample, which contains the taxonomic labels assigned to each sequence, as well as the number of sequences assigned to each taxon. The reports are available in the `data/kraken_reports` directory.
 
-In our initial Kraken2 runs, we used a smaller RefSeq database (~7.5 GB) called Standard-8, viewable [here](https://benlangmead.github.io/aws-indexes/k2#:~:text=to%20use%20it.-,Kraken%202%20/%20Bracken%20Refseq%20indexes,-Starting%20Fall%202020) **Have to check with Phil if he actually used this database**.
-
-We are currently working on a new Kraken2 run with
-
- 1. Improved adapter trimming.
- 2. A larger RefSeq database (15 GB), called Standard016 available [here](https://benlangmead.github.io/aws-indexes/k2). This is still not the largest, which is 48 GB.
- 3. Settings to produce full taxonomies for each sequence, instead of just the lowest taxonomic rank.
+In this analyses we work with Kraken2 runs, using a 15 GB RefSeq database, called Standard-16, available [here](https://benlangmead.github.io/aws-indexes/k2). Previously we used a smaller RefSeq database (~7.5 GB) called Standard-8 or Minikraken, viewable [here](https://benlangmead.github.io/aws-indexes/k2#:~:text=to%20use%20it.-,Kraken%202%20/%20Bracken%20Refseq%20indexes,-Starting%20Fall%202020)
 
 #### Kraken2 report structure
 
@@ -182,9 +176,34 @@ kraken_reports <- map_dfr(fns, read_kraken_report, .id = 'sample')
 
 We now want to link the resulting kraken2 dataframe with information about the full upstream taxonomy of each taxa present in `kraken2_sample_reports`.
 
-These full taxonomies can either be created by [Kraken]([manual](https://github.com/DerrickWood/kraken2/blob/master/docs/MANUAL.markdown#:~:text=provide%20the%20option-,%2D%2Duse%2Dmpa%2Dstyle,-that%20can%20be)), though we are currently running into issues with creating such reports on the engaging cluster.
+These full taxonomies can either be created by [Kraken]([manual](https://github.com/DerrickWood/kraken2/blob/master/docs/MANUAL.markdown#:~:text=provide%20the%20option-,%2D%2Duse%2Dmpa%2Dstyle,-that%20can%20be)), or through a KrakenTools script, kraken2mpa.py, which is available [here](https://github.com/jenniferlu717/KrakenTools). The latest edit of kraken2mpa.py broke the tool, we raised an issue and used a version from mid-2022, calling it kraken2mpa_older_version.py.
+
+```{bash}
+for file in data/kraken_reports/kraken2_standard_16gb/*.txt
+do
+	python3 local_scripts/KrakenTools/kreport2mpa_older_version.py -r $file -o $file.mpa
+done
+
+mkdir output/kraken/kraken2_standard_16gb
+for file in data/kraken_reports/kraken2_standard_16gb/*.mpa
+do
+  mv $file output/kraken/kraken2_standard_16gb
+done
+```
+
+```{bash}
+```
 
 IF we keep on running into issues we can use Jeff's script to generate full taxonomies from kraken2 reports, available [here](https://github.com/naobservatory/illumina_pilot/blob/main/local_scripts/kraken-to-records.py).
+
+
+
+```{bash}
+python3 kreport2mpa.py -r data/kraken_reports/kraken2_standard_16gb/10170_kraken2_report.txt -o data/10170_kraken2_report.mpa.txt --intermediate-ranks
+```
+
+```{bash}
+```
 
 In the mean time I've created a template kraken2 taxonomy record, available under `data/taxonomy/kraken2_taxonomy_template.txt`, which we can use to link the kraken2 reports with kraken2 taxonomy records. Let's take a look:
 ```{r, warning = FALSE, message = FALSE}
@@ -244,11 +263,13 @@ We have **three different ways** of linking viruses persent in the kraken2 repor
 Let's try to link the viruses by species name first.
 
 ```{r, code_folding = "show", message=FALSE, warning=FALSE, output=FALSE}
+#Will need to subset for viruses only
 kraken2_unique_species <- kraken_reports %>%
   # Extracting the all rows where rankcode is S (species)
   filter(rank_code == 'S') %>%
   #Only keeping rows with unique scientific_name
   distinct(scientific_name, .keep_all = TRUE)
+
 
 #Defining a function that checks if a given species name is present in the ICTV table.
 
