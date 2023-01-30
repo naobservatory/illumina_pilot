@@ -55,7 +55,7 @@ output/*
 !output/.gitkeep
 
 # Excluding VSCode settings
-settings.json
+.settings.json
 
 # Content of Slurm output folder
 slurm/czid/*
