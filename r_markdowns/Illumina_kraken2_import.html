@@ -2896,7 +2896,7 @@ library(ggbeeswarm)</code></pre>
 <h2><span class="header-section-number">2.2</span> Defining directories</h2>
 <pre class="r"><code>biom_data_path &lt;- here(&quot;data/czid&quot;)
 metadata_data_path &lt;- here(&quot;data/metadata&quot;)
-kraken_data_path &lt;- here(&quot;data/kraken_reports&quot;)
+kraken_data_path &lt;- here(&quot;data/kraken_reports/kraken2_standard_16gb&quot;)
 taxonomy_data_path &lt;- here(&quot;data/taxonomy&quot;)
 output_data_path &lt;- here(&quot;output&quot;)
 project_path &lt;- here(&#39;../illumina_pilot&#39;)</code></pre>
@@ -2942,13 +2942,7 @@ sample_metadata &lt;- read_sheet(
 <div id="context" class="section level4" number="2.3.2.1">
 <h4><span class="header-section-number">2.3.2.1</span> Context</h4>
 <p>We now read in our Kraken2 reports. Kraken2 is a tool for assigning taxonomic labels to unassembled (raw) DNA sequences. Kraken2 outputs a report for each sample, which contains the taxonomic labels assigned to each sequence, as well as the number of sequences assigned to each taxon. The reports are available in the <code>data/kraken_reports</code> directory.</p>
-<p>In our initial Kraken2 runs, we used a smaller RefSeq database (~7.5 GB) called Standard-8, viewable <a href="https://benlangmead.github.io/aws-indexes/k2#:~:text=to%20use%20it.-,Kraken%202%20/%20Bracken%20Refseq%20indexes,-Starting%20Fall%202020">here</a> <strong>Have to check with Phil if he actually used this database</strong>.</p>
-<p>We are currently working on a new Kraken2 run with</p>
-<ol style="list-style-type: decimal">
-<li>Improved adapter trimming.</li>
-<li>A larger RefSeq database (15 GB), called Standard016 available <a href="https://benlangmead.github.io/aws-indexes/k2">here</a>. This is still not the largest, which is 48 GB.</li>
-<li>Settings to produce full taxonomies for each sequence, instead of just the lowest taxonomic rank.</li>
-</ol>
+<p>In this analyses we work with Kraken2 runs, using a 15 GB RefSeq database, called Standard-16, available <a href="https://benlangmead.github.io/aws-indexes/k2">here</a>. Previously we used a smaller RefSeq database (~7.5 GB) called Standard-8 or Minikraken, viewable <a href="https://benlangmead.github.io/aws-indexes/k2#:~:text=to%20use%20it.-,Kraken%202%20/%20Bracken%20Refseq%20indexes,-Starting%20Fall%202020">here</a></p>
 </div>
 <div id="kraken2-report-structure" class="section level4" number="2.3.2.2">
 <h4><span class="header-section-number">2.3.2.2</span> Kraken2 report structure</h4>
@@ -2985,7 +2979,7 @@ number indicating the distance from that rank. Ex. Lampyrinae has a rank code of
 <div id="reading-in-reports" class="section level4" number="2.3.2.3">
 <h4><span class="header-section-number">2.3.2.3</span> Reading in reports</h4>
 <p>First, we read in the full directory paths for all kraken2 reports.</p>
-<pre class="r"><code>fns &lt;- path(project_path, &#39;data/kraken_reports&#39;) %&gt;%
+<pre class="r"><code>report_fns &lt;- path(project_path, &#39;data/kraken_reports/kraken2_standard_16gb&#39;) %&gt;%
   dir_ls(glob = &#39;*_kraken2_report.txt&#39;)</code></pre>
 <details>
 <summary>
@@ -3012,13 +3006,13 @@ number indicating the distance from that rank. Ex. Lampyrinae has a rank code of
 </summary>
 Defining a function to read in a kraken2 report. We specify the column names (<code>col_names) and types (</code>col_types<code>), and then use</code>read_tsv<code>to read in the given</code>kraken_report`.
 </details>
-<pre class="r"><code>names(fns) &lt;- str_extract(fns %&gt;% path_file, &#39;^.*(?=_kraken2_report.txt)&#39;)
-kraken_reports &lt;- map_dfr(fns, read_kraken_report, .id = &#39;sample&#39;)</code></pre>
+<pre class="r"><code>names(report_fns) &lt;- str_extract(report_fns %&gt;% path_file, &#39;^.*(?=_kraken2_report.txt)&#39;)
+kraken_reports &lt;- map_dfr(report_fns, read_kraken_report, .id = &#39;sample&#39;)</code></pre>
 <details>
 <summary>
 <em>Code explainer</em>
 </summary>
-<p>Here we use <code>names()</code> to assign the respective sample number to each object in the vector <code>fns</code>, where the sample number is in the file name within the <code>fns</code> path file.
+<p>Here we use <code>names()</code> to assign the respective sample number to each object in the vector <code>report_fns</code>, where the sample number is in the file name within the <code>report_fns</code> path file.
 We extract the file name using this regular expression <code>&#39;^.*(?=kraken2_report.txt)&#39;</code>. This expression
 - returns everything before the first occurrence of <code>kraken2_report.txt</code> by anchoring the start of the string (^),
 - matching any character (.= any character, * any length of text),
@@ -3029,43 +3023,93 @@ Next we read in each kraken2 report into an R data table. This is done with the 
 <div id="linking-kraken2-reports-with-taxonomic-information" class="section level4" number="2.3.2.4">
 <h4><span class="header-section-number">2.3.2.4</span> Linking kraken2 reports with taxonomic information</h4>
 <p>We now want to link the resulting kraken2 dataframe with information about the full upstream taxonomy of each taxa present in <code>kraken2_sample_reports</code>.</p>
-<p>These full taxonomies can either be created by <a href="%5Bmanual%5D(https://github.com/DerrickWood/kraken2/blob/master/docs/MANUAL.markdown#:~:text=provide%20the%20option-,%2D%2Duse%2Dmpa%2Dstyle,-that%20can%20be)">Kraken</a>, though we are currently running into issues with creating such reports on the engaging cluster.</p>
-<p>IF we keep on running into issues we can use Jeff’s script to generate full taxonomies from kraken2 reports, available <a href="https://github.com/naobservatory/illumina_pilot/blob/main/local_scripts/kraken-to-records.py">here</a>.</p>
-<p>In the mean time I’ve created a template kraken2 taxonomy record, available under <code>data/taxonomy/kraken2_taxonomy_template.txt</code>, which we can use to link the kraken2 reports with kraken2 taxonomy records. Let’s take a look:</p>
-<pre class="r"><code>template_taxonomy &lt;- read_tsv(path(taxonomy_data_path, &quot;kraken2_taxonomy_template.txt&quot;),
-                              col_names = c(&#39;taxonomy&#39;, &#39;coverage&#39;),
-                              col_types = cols(
-                                taxonomy = col_character(),
-                                coverage = col_double()
-                              )) %&gt;%
-  print</code></pre>
-<pre><code>## # A tibble: 12 × 2
-##    taxonomy                                                              cover…¹
-##    &lt;chr&gt;                                                                   &lt;dbl&gt;
-##  1 d__Viruses                                                                  0
-##  2 d__Viruses|o__Ligamenvirales                                                0
-##  3 d__Viruses|o__Ligamenvirales|f__Lipothrixviridae                            0
-##  4 d__Viruses|o__Ligamenvirales|f__Lipothrixviridae|g__Betalipothrixvir…       0
-##  5 d__Viruses|o__Ligamenvirales|f__Lipothrixviridae|g__Betalipothrixvir…       0
-##  6 d__Viruses|o__Ligamenvirales|f__Lipothrixviridae|g__Betalipothrixvir…       0
-##  7 d__Viruses|o__Ligamenvirales|f__Lipothrixviridae|g__Betalipothrixvir…       0
-##  8 d__Viruses|o__Ligamenvirales|f__Lipothrixviridae|g__Betalipothrixvir…       0
-##  9 d__Viruses|o__Ligamenvirales|f__Lipothrixviridae|g__Betalipothrixvir…       0
-## 10 d__Viruses|o__Ligamenvirales|f__Lipothrixviridae|g__Gammalipothrixvi…       0
-## 11 d__Viruses|o__Ligamenvirales|f__Lipothrixviridae|g__Gammalipothrixvi…       0
-## 12 d__Viruses|o__Ligamenvirales|f__Lipothrixviridae|g__Deltalipothrixvi…       0
-## # … with abbreviated variable name ¹​coverage</code></pre>
-<p>With the above template we can now create a function that will pull out the rows from the kraken2 reports that match the template taxonomy.</p>
-<p>TO BE CONTINUED ONCE WE HAVE KRAKEN2 TAXONOMY REPORTS</p>
-<pre class="r"><code>pull_taxonomy_rows &lt;- function(kraken_report) {
-  desired_taxa &lt;- template_taxonomy$taxonomy %&gt;%
-    # Extracting the lowest taxonomic rank
-    str_extract(&#39;([^__]*)$&#39;)
-  kraken_report %&gt;%
-    filter(scientific_name %in% desired_taxa)
-}
+<p>These full taxonomies can either be created by <a href="%5Bmanual%5D(https://github.com/DerrickWood/kraken2/blob/master/docs/MANUAL.markdown#:~:text=provide%20the%20option-,%2D%2Duse%2Dmpa%2Dstyle,-that%20can%20be)">Kraken</a>, or through a KrakenTools script, kraken2mpa.py, which is available <a href="https://github.com/naobservatory/KrakenTools">here</a>.</p>
+<pre class="r"><code>##Integrate the following code into the mag pipeline.
+#&lt;!-- for file in data/kraken_reports/kraken2_standard_16gb/*.txt
+#do
+#   python3 local_scripts/KrakenTools/kreport2mpa_older_version.py -r $file -o $file.mpa
+#done
+#
+#mkdir output/kraken/kraken2_standard_16gb
+#for file in data/kraken_reports/kraken2_standard_16gb/*.mpa
+#do
+#  mv $file output/kraken/kraken2_standard_16gb
+#done --&gt;</code></pre>
+<pre class="r"><code>taxonomy_fns &lt;- path(output_data_path, &#39;/kraken/kraken2_standard_16gb&#39;) %&gt;%
+  dir_ls(glob = &#39;*_kraken2_report.txt.mpa&#39;) %&gt;%
+  glimpse()</code></pre>
+<pre><code>##  &#39;fs_path&#39; Named chr [1:12] &quot;/Users/simongrimm/Documents/mit/stats/illumina_pilot/output/kraken/kraken2_standard_16gb/10170_kraken2_report.txt.mpa&quot; ...
+##  - attr(*, &quot;names&quot;)= chr [1:12] &quot;/Users/simongrimm/Documents/mit/stats/illumina_pilot/output/kraken/kraken2_standard_16gb/10170_kraken2_report.txt.mpa&quot; &quot;/Users/simongrimm/Documents/mit/stats/illumina_pilot/output/kraken/kraken2_standard_16gb/10172_kraken2_report.txt.mpa&quot; &quot;/Users/simongrimm/Documents/mit/stats/illumina_pilot/output/kraken/kraken2_standard_16gb/10175_kraken2_report.txt.mpa&quot; &quot;/Users/simongrimm/Documents/mit/stats/illumina_pilot/output/kraken/kraken2_standard_16gb/10176_kraken2_report.txt.mpa&quot; ...</code></pre>
+<details>
+<summary>
+<em>Code explainer</em>
+</summary>
+Again, <code>dir_ls</code> returns a vector of file paths. <code>Glob</code> allows us to use regex, matching any file path that ends with <code>_kraken2_report.txt.mpa</code>, thus matching all taxonomy reports.
+</details>
+<pre class="r"><code>read_kraken_taxonomy &lt;- function(kraken_taxonomy) {
+  col_names &lt;- c(&#39;full_taxonomy&#39;, &#39;fragments_covered&#39;)
+  col_types &lt;- cols(
+    full_taxonomy = col_character(),
+    fragments_covered = col_integer()
+  )
+  read_tsv(kraken_taxonomy, col_names = col_names, col_types = col_types)
+}</code></pre>
+<details>
+<summary>
+<em>Code explainer</em>
+</summary>
+Defining a function to read in a kraken2 taxonomy report (txt.mpa). We specify the column names (<code>col_names) and types (</code>col_types<code>), and then use</code>read_tsv<code>to read in the given</code>kraken_t`.
+</details>
+<pre class="r"><code>names(taxonomy_fns) &lt;- str_extract(taxonomy_fns %&gt;% path_file, &#39;^.*(?=_kraken2_report.txt.mpa)&#39;)
+kraken_taxonomies &lt;- map_dfr(taxonomy_fns, read_kraken_taxonomy, .id = &#39;sample&#39;) %&gt;%
+  mutate_if(is.character, tolower) %&gt;%
+  mutate_if(is.character, ~str_replace_all(., &#39; &#39;, &#39;_&#39;)) %&gt;%
+  glimpse()</code></pre>
+<pre><code>## Rows: 309,672
+## Columns: 3
+## $ sample            &lt;chr&gt; &quot;10170&quot;, &quot;10170&quot;, &quot;10170&quot;, &quot;10170&quot;, &quot;10170&quot;, &quot;10170&quot;…
+## $ full_taxonomy     &lt;chr&gt; &quot;k__bacteria&quot;, &quot;k__bacteria|p__proteobacteria&quot;, &quot;k__…
+## $ fragments_covered &lt;int&gt; 37951, 20709, 9756, 2921, 2921, 2699, 888, 107, 101,…</code></pre>
+<p>Now we want to turn the full taxonomy column into several taxonomic ranks. We can do this by splitting the full taxonomy column on the |.</p>
+<pre class="r"><code>#Finish explainer of code below
+kraken_taxonomies_expanded &lt;- kraken_taxonomies %&gt;%
+  mutate(
+    kingdom = str_extract(full_taxonomy, &quot;(?&lt;=^k__)[^|]+&quot;),
+    phylum  = str_extract(full_taxonomy, &quot;(?&lt;=p__)[^|]+&quot;),
+    class   = str_extract(full_taxonomy, &quot;(?&lt;=c__)[^|]+&quot;),
+    order   = str_extract(full_taxonomy, &quot;(?&lt;=o__)[^|]+&quot;),
+    family  = str_extract(full_taxonomy, &quot;(?&lt;=f__)[^|]+&quot;),
+    genus   = str_extract(full_taxonomy, &quot;(?&lt;=g__)[^|]+&quot;),
+    species = str_extract(full_taxonomy, &quot;(?&lt;=s__)[^|]+&quot;)
+  )</code></pre>
+<details>
+<summary>
+<em>Code explainer</em>
+</summary>
+Positive Lookbehind (?&lt;=c__)
+Assert that the Regex below matches
+c<strong> matches the characters c</strong> literally (case sensitive)
+Match a single character not present in the list below [^|]
++ matches the previous token between one and unlimited times, as many times as possible, giving back as needed (greedy)
+| matches the character | with index 12410 (7C16 or 1748) literally (case sensitive)
+</details>
+<pre><code>
+With the above template we can now create a function that will pull out the rows from the kraken2 reports that match the template taxonomy.
 
-desired_rows &lt;- pull_taxonomy_rows(kraken_reports)</code></pre>
+TO BE CONTINUED ONCE WE HAVE KRAKEN2 TAXONOMY REPORTS
+
+
+```r
+#deprecated
+# pull_taxonomy_rows &lt;- function(kraken_report) {
+#    desired_taxa &lt;- template_taxonomy$taxonomy %&gt;%
+#      Extracting the lowest taxonomic rank
+#      str_extract(&#39;([^__]*)$&#39;)
+#    kraken_report %&gt;%
+#      filter(scientific_name %in% desired_taxa)
+# }
+
+# desired_rows &lt;- pull_taxonomy_rows(kraken_reports)</code></pre>
 <details>
 <summary>
 <em>Code explainer</em>
@@ -3079,31 +3123,33 @@ Next, we filter the given <code>kraken_report</code> report to only include the 
   janitor::clean_names() %&gt;%
   # remove unused columns
   select(where(~!all(is.na(.)))) %&gt;%
+  mutate_if(is.character, tolower) %&gt;%
+  mutate_if(is.character, ~str_replace_all(., &#39; &#39;, &#39;_&#39;)) %&gt;%
   glimpse</code></pre>
 <pre><code>## Rows: 12,060
 ## Columns: 23
 ## $ sort                           &lt;dbl&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, …
 ## $ isolate_sort                   &lt;dbl&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …
-## $ realm                          &lt;chr&gt; &quot;Adnaviria&quot;, &quot;Adnaviria&quot;, &quot;Adnaviria&quot;, …
-## $ kingdom                        &lt;chr&gt; &quot;Zilligvirae&quot;, &quot;Zilligvirae&quot;, &quot;Zilligvi…
-## $ phylum                         &lt;chr&gt; &quot;Taleaviricota&quot;, &quot;Taleaviricota&quot;, &quot;Tale…
+## $ realm                          &lt;chr&gt; &quot;adnaviria&quot;, &quot;adnaviria&quot;, &quot;adnaviria&quot;, …
+## $ kingdom                        &lt;chr&gt; &quot;zilligvirae&quot;, &quot;zilligvirae&quot;, &quot;zilligvi…
+## $ phylum                         &lt;chr&gt; &quot;taleaviricota&quot;, &quot;taleaviricota&quot;, &quot;tale…
 ## $ subphylum                      &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
-## $ class                          &lt;chr&gt; &quot;Tokiviricetes&quot;, &quot;Tokiviricetes&quot;, &quot;Toki…
-## $ order                          &lt;chr&gt; &quot;Ligamenvirales&quot;, &quot;Ligamenvirales&quot;, &quot;Li…
+## $ class                          &lt;chr&gt; &quot;tokiviricetes&quot;, &quot;tokiviricetes&quot;, &quot;toki…
+## $ order                          &lt;chr&gt; &quot;ligamenvirales&quot;, &quot;ligamenvirales&quot;, &quot;li…
 ## $ suborder                       &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
-## $ family                         &lt;chr&gt; &quot;Lipothrixviridae&quot;, &quot;Lipothrixviridae&quot;,…
+## $ family                         &lt;chr&gt; &quot;lipothrixviridae&quot;, &quot;lipothrixviridae&quot;,…
 ## $ subfamily                      &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
-## $ genus                          &lt;chr&gt; &quot;Alphalipothrixvirus&quot;, &quot;Alphalipothrixv…
+## $ genus                          &lt;chr&gt; &quot;alphalipothrixvirus&quot;, &quot;alphalipothrixv…
 ## $ subgenus                       &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
-## $ species                        &lt;chr&gt; &quot;Alphalipothrixvirus SBFV2&quot;, &quot;Alphalipo…
-## $ exemplar_or_additional_isolate &lt;chr&gt; &quot;E&quot;, &quot;E&quot;, &quot;E&quot;, &quot;E&quot;, &quot;E&quot;, &quot;E&quot;, &quot;E&quot;, &quot;E&quot;,…
-## $ virus_name_s                   &lt;chr&gt; &quot;Sulfolobales Beppu filamentous virus 2…
-## $ virus_name_abbreviation_s      &lt;chr&gt; &quot;SBFV2&quot;, &quot;SFV1&quot;, &quot;AFV3&quot;, &quot;AFV6&quot;, &quot;AFV7&quot;…
-## $ virus_isolate_designation      &lt;chr&gt; &quot;SBFV2 clone B&quot;, &quot;SFV1 isolate S48&quot;, NA…
-## $ virus_genbank_accession        &lt;chr&gt; &quot;MK064563&quot;, &quot;MH447526&quot;, &quot;AM087120&quot;, &quot;AM…
-## $ virus_refseq_accession         &lt;chr&gt; &quot;NC_048128&quot;, &quot;NC_048037&quot;, &quot;NC_010155&quot;, …
-## $ genome_coverage                &lt;chr&gt; &quot;Complete coding genome&quot;, &quot;Complete gen…
-## $ genome_composition             &lt;chr&gt; &quot;dsDNA&quot;, &quot;dsDNA&quot;, &quot;dsDNA&quot;, &quot;dsDNA&quot;, &quot;ds…
+## $ species                        &lt;chr&gt; &quot;alphalipothrixvirus_sbfv2&quot;, &quot;alphalipo…
+## $ exemplar_or_additional_isolate &lt;chr&gt; &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;,…
+## $ virus_name_s                   &lt;chr&gt; &quot;sulfolobales_beppu_filamentous_virus_2…
+## $ virus_name_abbreviation_s      &lt;chr&gt; &quot;sbfv2&quot;, &quot;sfv1&quot;, &quot;afv3&quot;, &quot;afv6&quot;, &quot;afv7&quot;…
+## $ virus_isolate_designation      &lt;chr&gt; &quot;sbfv2_clone_b&quot;, &quot;sfv1_isolate_s48&quot;, NA…
+## $ virus_genbank_accession        &lt;chr&gt; &quot;mk064563&quot;, &quot;mh447526&quot;, &quot;am087120&quot;, &quot;am…
+## $ virus_refseq_accession         &lt;chr&gt; &quot;nc_048128&quot;, &quot;nc_048037&quot;, &quot;nc_010155&quot;, …
+## $ genome_coverage                &lt;chr&gt; &quot;complete_coding_genome&quot;, &quot;complete_gen…
+## $ genome_composition             &lt;chr&gt; &quot;dsdna&quot;, &quot;dsdna&quot;, &quot;dsdna&quot;, &quot;dsdna&quot;, &quot;ds…
 ## $ host_source                    &lt;chr&gt; &quot;archaea&quot;, &quot;archaea&quot;, &quot;archaea&quot;, &quot;archa…</code></pre>
 </div>
 </div>
@@ -3120,42 +3166,232 @@ Next, we filter the given <code>kraken_report</code> report to only include the 
 <div id="linking-entries-by-species-name" class="section level3" number="2.4.1">
 <h3><span class="header-section-number">2.4.1</span> Linking entries by species name</h3>
 <p>Let’s try to link the viruses by species name first.</p>
-<pre class="r"><code>kraken2_unique_species &lt;- kraken_reports %&gt;%
-  # Extracting the all rows where rankcode is S (species)
-  filter(rank_code == &#39;S&#39;) %&gt;%
-  #Only keeping rows with unique scientific_name
-  distinct(scientific_name, .keep_all = TRUE)
-
-#Defining a function that checks if a given species name is present in the ICTV table.
-
-check_presence &lt;- function(x) {
-  if (x %in% taxonomy_reference$species) {
+<p>First, we subset all unique viral species taxonomies from the kraken2 taxonomic reports.</p>
+<pre class="r"><code>kraken_viral_species &lt;- kraken_taxonomies_expanded %&gt;%
+  # Extracting all Viruses
+  filter(kingdom == &#39;viruses&#39;) %&gt;%
+  # Dropping all rows with duplicate virus names. We are using keep_all to keep all other columns, not only virus.
+  distinct(species, .keep_all = TRUE) %&gt;%
+  glimpse()</code></pre>
+<pre><code>## Rows: 11,177
+## Columns: 10
+## $ sample            &lt;chr&gt; &quot;10170&quot;, &quot;10170&quot;, &quot;10170&quot;, &quot;10170&quot;, &quot;10170&quot;, &quot;10170&quot;…
+## $ full_taxonomy     &lt;chr&gt; &quot;k__viruses&quot;, &quot;k__viruses|k__heunggongvirae|p__urovi…
+## $ fragments_covered &lt;int&gt; 6178, 171, 158, 77, 4, 1, 0, 2, 1, 41, 17, 23, 6, 6,…
+## $ kingdom           &lt;chr&gt; &quot;viruses&quot;, &quot;viruses&quot;, &quot;viruses&quot;, &quot;viruses&quot;, &quot;viruses…
+## $ phylum            &lt;chr&gt; NA, &quot;uroviricota&quot;, &quot;uroviricota&quot;, &quot;uroviricota&quot;, &quot;ur…
+## $ class             &lt;chr&gt; NA, &quot;caudoviricetes&quot;, &quot;caudoviricetes&quot;, &quot;caudovirice…
+## $ order             &lt;chr&gt; NA, &quot;crassvirales&quot;, &quot;crassvirales&quot;, &quot;crassvirales&quot;, …
+## $ family            &lt;chr&gt; NA, &quot;suoliviridae&quot;, &quot;suoliviridae&quot;, &quot;suoliviridae&quot;, …
+## $ genus             &lt;chr&gt; NA, &quot;burzaovirus&quot;, &quot;burzaovirus&quot;, &quot;burzaovirus&quot;, &quot;ch…
+## $ species           &lt;chr&gt; NA, &quot;burzaovirus_coli&quot;, &quot;burzaovirus_intestinihomini…</code></pre>
+<p>Then we define two functions both creating a vector, returning TRUE if a given <strong>species</strong> or <strong>genus</strong> name is present in the ICTV table.</p>
+<pre class="r"><code>logical_virus_presence &lt;- function(virus) {
+  if (virus %in% taxonomy_reference$species) {
     return(TRUE)
-    #Checking if kraken2 species name is present in ICTV table column `species`
-  } else if (x %in% taxonomy_reference$virus_name_s) {
+  } else if (virus %in% taxonomy_reference$virus_name_s) {
     return(TRUE)
-    #Checking if kraken2 species name is present in ICTV table column `virus_name_s`
   } else {
     return(FALSE)
 }}
 
-#We could also write a smaller function using `any`:
+logical_genus_presence &lt;- function(genus) {
+  if (genus %in% taxonomy_reference$genus) {
+    return(TRUE)
+  } else {
+    return(FALSE)
+}}</code></pre>
+<p>Running functions on our subset taxnomies <code>kraken_viral_species</code>. We can then combine the results to end up with a logical vector, indicating true wherever either a kraken species or a genus matches in the ICTV table.</p>
+<pre class="r"><code>virus_present &lt;- map(kraken_viral_species$species, logical_virus_presence) %&gt;%
+  as.logical()
 
-check_presence &lt;- function(x) {
-  return(any(x %in% taxonomy_reference$species) || (x %in% taxonomy_reference$virus_name_s))
-}
+genus_present &lt;- map(kraken_viral_species$genus, logical_genus_presence) %&gt;%
+  as.logical()
 
-num_present &lt;- map(kraken2_unique_species$scientific_name, check_presence) %&gt;%
-  as.logical() %&gt;%
-  sum()</code></pre>
-<p>Doing this we find that only <strong>3801</strong> of the <strong>14995</strong> species in the kraken2 reports are present in the ICTV table, equating to <strong>25 %</strong> of species in our kraken2 analyses.</p>
+virus_or_genus_present &lt;- (virus_present | genus_present) %&gt;%
+  sum() %&gt;%
+  glimpse</code></pre>
+<pre><code>##  int 11117</code></pre>
+<details>
+<summary>
+<em>Code explainer</em>
+</summary>
+<div class="line-block">is a logical OR operator, which returns TRUE if either of the two arguments are TRUE. We can use this to combine the results of the two functions, to end up with a logical vector, indicating true wherever either a kraken species or a genus matches in the ICTV table. More on Boolean algebra can be found <a href="https://r4ds.hadley.nz/logicals.html#fig-bool-ops:~:text=Once%20you%20have%20multiple%20logical%20vectors%2C%20you%20can%20combine%20them%20together%20using%20Boolean%20algebra.%20In%20R%2C%20%26%20is%20%E2%80%9Cand%E2%80%9D%2C%20%7C%20is%20%E2%80%9Cor%E2%80%9D%2C%20!%20is%20%E2%80%9Cnot%E2%80%9D%2C%20and%20xor()%20is%20exclusive%20or2.">here</a></div>
+</details>
+<p>Doing this we find that only <strong>11117</strong> of the <strong>11177</strong> species in the kraken2 match onto the ICTV table, either by species or genus name. This equates to <strong>99 %</strong> of species in our kraken2 analyses.</p>
 </div>
 <div id="linking-entries-through-higher-taxonomic-ranks" class="section level3" number="2.4.2">
 <h3><span class="header-section-number">2.4.2</span> Linking entries through higher taxonomic ranks</h3>
-<p>We could thus try to link genome composition to our kraken2 species’, by identifying higher taxonomic ranks that are more likely to be homogenous between both ICTV and Kraken2 taxonomies. <strong>But for this we need complete taxonomies, which we currently only have through Jeff’s code.</strong></p>
-<p>Potential next steps thus are:
-- Use Jeff’s output to use link genome composition to kraken2 species through taxonomic linkage.
-- Get Kraken2 to work on the cluster.</p>
+<p>We could thus try to link genome composition to our kraken2 species’, by identifying higher taxonomic ranks that are more likely to be homogenous between both ICTV and Kraken2 taxonomies. We’ve previously created these taxonomies this by using kreport2mpa.py; the output files are found under <code>output/kraken/kraken2_standard_16gb/*.txt.mpa</code>.</p>
+<p>Next, we want to identify on which taxonomic level we want link entries. We do this by figuring out which taxonomic level in the ICTV table is easily linkable while also maintaining unique genome composition.</p>
+<p>As seen below there are more than 1400 species that do not have the same genome composition as other species in their genus. This means that we cannot link entries by genus, as this would result in a lot of misclassifications.</p>
+<p><strong>As of now it seems we will have to link entries in various ways, as there is no single taxonomic level that is both homogenous and linkable.</strong></p>
+<pre class="r"><code>non_unique_composition_genus &lt;- taxonomy_reference %&gt;%
+  group_by(genus) %&gt;%
+  #Filter all genera with more than one genome composition
+  filter(n_distinct(genome_composition) &gt; 1) %&gt;%
+  glimpse</code></pre>
+<pre><code>## Rows: 1,595
+## Columns: 23
+## Groups: genus [39]
+## $ sort                           &lt;dbl&gt; 89, 156, 157, 158, 159, 1599, 3793, 379…
+## $ isolate_sort                   &lt;dbl&gt; 1, 1, 1, 1, 1, 1, 1, 2, 3, 4, 5, 1, 1, …
+## $ realm                          &lt;chr&gt; &quot;duplodnaviria&quot;, &quot;duplodnaviria&quot;, &quot;dupl…
+## $ kingdom                        &lt;chr&gt; &quot;heunggongvirae&quot;, &quot;heunggongvirae&quot;, &quot;he…
+## $ phylum                         &lt;chr&gt; &quot;peploviricota&quot;, &quot;peploviricota&quot;, &quot;pepl…
+## $ subphylum                      &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
+## $ class                          &lt;chr&gt; &quot;herviviricetes&quot;, &quot;herviviricetes&quot;, &quot;he…
+## $ order                          &lt;chr&gt; &quot;herpesvirales&quot;, &quot;herpesvirales&quot;, &quot;herp…
+## $ suborder                       &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
+## $ family                         &lt;chr&gt; &quot;herpesviridae&quot;, &quot;herpesviridae&quot;, &quot;herp…
+## $ subfamily                      &lt;chr&gt; &quot;alphaherpesvirinae&quot;, &quot;gammaherpesvirin…
+## $ genus                          &lt;chr&gt; NA, NA, NA, NA, NA, NA, &quot;fibrovirus&quot;, &quot;…
+## $ subgenus                       &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
+## $ species                        &lt;chr&gt; &quot;chelonid_alphaherpesvirus_6&quot;, &quot;equid_g…
+## $ exemplar_or_additional_isolate &lt;chr&gt; &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;a&quot;,…
+## $ virus_name_s                   &lt;chr&gt; &quot;chelonid_alphaherpesvirus_6;_lung–eye–…
+## $ virus_name_abbreviation_s      &lt;chr&gt; &quot;chahv6;_letv&quot;, &quot;eghv7;_ashv2&quot;, &quot;phoghv…
+## $ virus_isolate_designation      &lt;chr&gt; &quot;lethv_221&quot;, &quot;t-07&quot;, NA, &quot;s-388d&quot;, NA, …
+## $ virus_genbank_accession        &lt;chr&gt; &quot;ay124577&quot;, &quot;eu165547&quot;, &quot;gq429152&quot;, &quot;u6…
+## $ virus_refseq_accession         &lt;chr&gt; NA, &quot;nc_043061&quot;, &quot;nc_043062&quot;, &quot;nc_05523…
+## $ genome_coverage                &lt;chr&gt; &quot;partial_genome&quot;, &quot;partial_genome&quot;, &quot;pa…
+## $ genome_composition             &lt;chr&gt; &quot;dsdna&quot;, &quot;dsdna&quot;, &quot;dsdna&quot;, &quot;dsdna&quot;, &quot;ds…
+## $ host_source                    &lt;chr&gt; &quot;vertebrates&quot;, &quot;vertebrates&quot;, &quot;vertebra…</code></pre>
+<pre class="r"><code>composition_w_o_pos_neg &lt;- taxonomy_reference %&gt;%
+  mutate(
+    genome_composition = str_replace_all(genome_composition, &#39;\\(\\+/-\\)&#39;, &#39;&#39;),
+    genome_composition = str_replace_all(genome_composition, &#39;\\(\\+\\)&#39;, &#39;&#39;),
+    genome_composition = str_replace_all(genome_composition, &#39;\\(\\-\\)&#39;, &#39;&#39;)
+  )
+
+non_unique_composition_w_o_pos_neg &lt;- composition_w_o_pos_neg %&gt;%
+  group_by(genus) %&gt;%
+  #Filter all genera with more than one genome composition
+  filter(n_distinct(genome_composition) &gt; 1) %&gt;%
+  glimpse</code></pre>
+<pre><code>## Rows: 113
+## Columns: 23
+## Groups: genus [3]
+## $ sort                           &lt;dbl&gt; 89, 156, 157, 158, 159, 1599, 5738, 573…
+## $ isolate_sort                   &lt;dbl&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …
+## $ realm                          &lt;chr&gt; &quot;duplodnaviria&quot;, &quot;duplodnaviria&quot;, &quot;dupl…
+## $ kingdom                        &lt;chr&gt; &quot;heunggongvirae&quot;, &quot;heunggongvirae&quot;, &quot;he…
+## $ phylum                         &lt;chr&gt; &quot;peploviricota&quot;, &quot;peploviricota&quot;, &quot;pepl…
+## $ subphylum                      &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
+## $ class                          &lt;chr&gt; &quot;herviviricetes&quot;, &quot;herviviricetes&quot;, &quot;he…
+## $ order                          &lt;chr&gt; &quot;herpesvirales&quot;, &quot;herpesvirales&quot;, &quot;herp…
+## $ suborder                       &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
+## $ family                         &lt;chr&gt; &quot;herpesviridae&quot;, &quot;herpesviridae&quot;, &quot;herp…
+## $ subfamily                      &lt;chr&gt; &quot;alphaherpesvirinae&quot;, &quot;gammaherpesvirin…
+## $ genus                          &lt;chr&gt; NA, NA, NA, NA, NA, NA, &quot;alphapleolipov…
+## $ subgenus                       &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
+## $ species                        &lt;chr&gt; &quot;chelonid_alphaherpesvirus_6&quot;, &quot;equid_g…
+## $ exemplar_or_additional_isolate &lt;chr&gt; &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;,…
+## $ virus_name_s                   &lt;chr&gt; &quot;chelonid_alphaherpesvirus_6;_lung–eye–…
+## $ virus_name_abbreviation_s      &lt;chr&gt; &quot;chahv6;_letv&quot;, &quot;eghv7;_ashv2&quot;, &quot;phoghv…
+## $ virus_isolate_designation      &lt;chr&gt; &quot;lethv_221&quot;, &quot;t-07&quot;, NA, &quot;s-388d&quot;, NA, …
+## $ virus_genbank_accession        &lt;chr&gt; &quot;ay124577&quot;, &quot;eu165547&quot;, &quot;gq429152&quot;, &quot;u6…
+## $ virus_refseq_accession         &lt;chr&gt; NA, &quot;nc_043061&quot;, &quot;nc_043062&quot;, &quot;nc_05523…
+## $ genome_coverage                &lt;chr&gt; &quot;partial_genome&quot;, &quot;partial_genome&quot;, &quot;pa…
+## $ genome_composition             &lt;chr&gt; &quot;dsdna&quot;, &quot;dsdna&quot;, &quot;dsdna&quot;, &quot;dsdna&quot;, &quot;ds…
+## $ host_source                    &lt;chr&gt; &quot;vertebrates&quot;, &quot;vertebrates&quot;, &quot;vertebra…</code></pre>
+<pre class="r"><code>unique(composition_w_o_pos_neg$genome_composition) %&gt;%
+  print</code></pre>
+<pre><code>## [1] &quot;dsdna&quot;    &quot;ssdna&quot;    &quot;dsrna&quot;    &quot;ssrna&quot;    &quot;dsdna-rt&quot; &quot;ssrna-rt&quot;</code></pre>
+<pre class="r"><code>unique(taxonomy_reference$genome_composition) %&gt;%
+  print</code></pre>
+<pre><code>##  [1] &quot;dsdna&quot;      &quot;ssdna(+)&quot;   &quot;ssdna&quot;      &quot;ssdna(+/-)&quot; &quot;dsrna&quot;     
+##  [6] &quot;ssrna(+)&quot;   &quot;ssrna&quot;      &quot;ssrna(-)&quot;   &quot;ssrna(+/-)&quot; &quot;dsdna-rt&quot;  
+## [11] &quot;ssrna-rt&quot;   &quot;ssdna(-)&quot;</code></pre>
+<pre class="r"><code>non_unique_composition_family &lt;- taxonomy_reference %&gt;%
+  group_by(family) %&gt;%
+  #Filter all genera with more than one genome composition
+  filter(n_distinct(genome_composition) &gt; 1) %&gt;%
+  glimpse</code></pre>
+<pre><code>## Rows: 4,041
+## Columns: 23
+## Groups: family [15]
+## $ sort                           &lt;dbl&gt; 1727, 1728, 1729, 1730, 1731, 1732, 173…
+## $ isolate_sort                   &lt;dbl&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …
+## $ realm                          &lt;chr&gt; &quot;duplodnaviria&quot;, &quot;duplodnaviria&quot;, &quot;dupl…
+## $ kingdom                        &lt;chr&gt; &quot;heunggongvirae&quot;, &quot;heunggongvirae&quot;, &quot;he…
+## $ phylum                         &lt;chr&gt; &quot;uroviricota&quot;, &quot;uroviricota&quot;, &quot;uroviric…
+## $ subphylum                      &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
+## $ class                          &lt;chr&gt; &quot;caudoviricetes&quot;, &quot;caudoviricetes&quot;, &quot;ca…
+## $ order                          &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
+## $ suborder                       &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
+## $ family                         &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
+## $ subfamily                      &lt;chr&gt; &quot;andrewesvirinae&quot;, &quot;andrewesvirinae&quot;, &quot;…
+## $ genus                          &lt;chr&gt; &quot;denvervirus&quot;, &quot;vipetofemvirus&quot;, &quot;vipet…
+## $ subgenus                       &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
+## $ species                        &lt;chr&gt; &quot;denvervirus_dv9183&quot;, &quot;vipetofemvirus_n…
+## $ exemplar_or_additional_isolate &lt;chr&gt; &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;,…
+## $ virus_name_s                   &lt;chr&gt; &quot;enterococcus_phage_9183&quot;, &quot;enterococcu…
+## $ virus_name_abbreviation_s      &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
+## $ virus_isolate_designation      &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
+## $ virus_genbank_accession        &lt;chr&gt; &quot;mt939241&quot;, &quot;mt119360&quot;, &quot;mt119361&quot;, &quot;ca…
+## $ virus_refseq_accession         &lt;chr&gt; &quot;nc_055907&quot;, &quot;nc_055833&quot;, &quot;nc_055834&quot;, …
+## $ genome_coverage                &lt;chr&gt; &quot;complete_genome&quot;, &quot;complete_genome&quot;, &quot;…
+## $ genome_composition             &lt;chr&gt; &quot;dsdna&quot;, &quot;dsdna&quot;, &quot;dsdna&quot;, &quot;dsdna&quot;, &quot;ds…
+## $ host_source                    &lt;chr&gt; &quot;bacteria&quot;, &quot;bacteria&quot;, &quot;bacteria&quot;, &quot;ba…</code></pre>
+<pre class="r"><code>taxonomy_reference %&gt;% glimpse</code></pre>
+<pre><code>## Rows: 12,060
+## Columns: 23
+## $ sort                           &lt;dbl&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, …
+## $ isolate_sort                   &lt;dbl&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …
+## $ realm                          &lt;chr&gt; &quot;adnaviria&quot;, &quot;adnaviria&quot;, &quot;adnaviria&quot;, …
+## $ kingdom                        &lt;chr&gt; &quot;zilligvirae&quot;, &quot;zilligvirae&quot;, &quot;zilligvi…
+## $ phylum                         &lt;chr&gt; &quot;taleaviricota&quot;, &quot;taleaviricota&quot;, &quot;tale…
+## $ subphylum                      &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
+## $ class                          &lt;chr&gt; &quot;tokiviricetes&quot;, &quot;tokiviricetes&quot;, &quot;toki…
+## $ order                          &lt;chr&gt; &quot;ligamenvirales&quot;, &quot;ligamenvirales&quot;, &quot;li…
+## $ suborder                       &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
+## $ family                         &lt;chr&gt; &quot;lipothrixviridae&quot;, &quot;lipothrixviridae&quot;,…
+## $ subfamily                      &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
+## $ genus                          &lt;chr&gt; &quot;alphalipothrixvirus&quot;, &quot;alphalipothrixv…
+## $ subgenus                       &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
+## $ species                        &lt;chr&gt; &quot;alphalipothrixvirus_sbfv2&quot;, &quot;alphalipo…
+## $ exemplar_or_additional_isolate &lt;chr&gt; &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;,…
+## $ virus_name_s                   &lt;chr&gt; &quot;sulfolobales_beppu_filamentous_virus_2…
+## $ virus_name_abbreviation_s      &lt;chr&gt; &quot;sbfv2&quot;, &quot;sfv1&quot;, &quot;afv3&quot;, &quot;afv6&quot;, &quot;afv7&quot;…
+## $ virus_isolate_designation      &lt;chr&gt; &quot;sbfv2_clone_b&quot;, &quot;sfv1_isolate_s48&quot;, NA…
+## $ virus_genbank_accession        &lt;chr&gt; &quot;mk064563&quot;, &quot;mh447526&quot;, &quot;am087120&quot;, &quot;am…
+## $ virus_refseq_accession         &lt;chr&gt; &quot;nc_048128&quot;, &quot;nc_048037&quot;, &quot;nc_010155&quot;, …
+## $ genome_coverage                &lt;chr&gt; &quot;complete_coding_genome&quot;, &quot;complete_gen…
+## $ genome_composition             &lt;chr&gt; &quot;dsdna&quot;, &quot;dsdna&quot;, &quot;dsdna&quot;, &quot;dsdna&quot;, &quot;ds…
+## $ host_source                    &lt;chr&gt; &quot;archaea&quot;, &quot;archaea&quot;, &quot;archaea&quot;, &quot;archa…</code></pre>
+<pre class="r"><code># summarise(unique_composition = n_distinct(genome_composition)) %&gt;%
+# #Checking if there are any genera with more than one genome composition
+# filter(unique_composition &gt; 1) %&gt;%
+# glimpse</code></pre>
+<pre class="r"><code>taxonomy_reference %&gt;%
+  filter(genus == &quot;Alphapleolipovirus&quot;) %&gt;%
+  glimpse</code></pre>
+<pre><code>## Rows: 0
+## Columns: 23
+## $ sort                           &lt;dbl&gt; 
+## $ isolate_sort                   &lt;dbl&gt; 
+## $ realm                          &lt;chr&gt; 
+## $ kingdom                        &lt;chr&gt; 
+## $ phylum                         &lt;chr&gt; 
+## $ subphylum                      &lt;chr&gt; 
+## $ class                          &lt;chr&gt; 
+## $ order                          &lt;chr&gt; 
+## $ suborder                       &lt;chr&gt; 
+## $ family                         &lt;chr&gt; 
+## $ subfamily                      &lt;chr&gt; 
+## $ genus                          &lt;chr&gt; 
+## $ subgenus                       &lt;chr&gt; 
+## $ species                        &lt;chr&gt; 
+## $ exemplar_or_additional_isolate &lt;chr&gt; 
+## $ virus_name_s                   &lt;chr&gt; 
+## $ virus_name_abbreviation_s      &lt;chr&gt; 
+## $ virus_isolate_designation      &lt;chr&gt; 
+## $ virus_genbank_accession        &lt;chr&gt; 
+## $ virus_refseq_accession         &lt;chr&gt; 
+## $ genome_coverage                &lt;chr&gt; 
+## $ genome_composition             &lt;chr&gt; 
+## $ host_source                    &lt;chr&gt;</code></pre>
 </div>
 <div id="linking-genome-composition-information-with-ncbi-tax-id-and-genbank-accession-number" class="section level3" number="2.4.3">
 <h3><span class="header-section-number">2.4.3</span> Linking genome composition information with NCBI Tax ID and GenBank accession number</h3>
@@ -3191,45 +3427,6 @@ num_present &lt;- map(kraken2_unique_species$scientific_name, check_presence) %&
 <p>We could create the tax table either by inferring the taxonomy from the kraken2 reports, or by using the ictv taxonomy table. I will try both approaches.</p>
 <div id="ictv-taxonomy" class="section level4" number="3.0.1.1">
 <h4><span class="header-section-number">3.0.1.1</span> ICTV Taxonomy</h4>
-<pre class="r"><code>taxonomy_reference &lt;- read_csv(path(taxonomy_data_path, &#39;taxonomy_reference.csv&#39;), skip = 1) %&gt;%
-  janitor::clean_names() %&gt;%
-  # remove unused columns
-  select(where(~!all(is.na(.)))) %&gt;%
-  glimpse</code></pre>
-<pre><code>## Rows: 12060 Columns: 26
-## ── Column specification ────────────────────────────────────────────────────────
-## Delimiter: &quot;,&quot;
-## chr (21): Realm, Kingdom, Phylum, Subphylum, Class, Order, Suborder, Family,...
-## dbl  (2): Sort, Isolate Sort
-## lgl  (3): Subrealm, Subkingdom, Subclass
-## 
-## ℹ Use `spec()` to retrieve the full column specification for this data.
-## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
-<pre><code>## Rows: 12,060
-## Columns: 23
-## $ sort                           &lt;dbl&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, …
-## $ isolate_sort                   &lt;dbl&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …
-## $ realm                          &lt;chr&gt; &quot;Adnaviria&quot;, &quot;Adnaviria&quot;, &quot;Adnaviria&quot;, …
-## $ kingdom                        &lt;chr&gt; &quot;Zilligvirae&quot;, &quot;Zilligvirae&quot;, &quot;Zilligvi…
-## $ phylum                         &lt;chr&gt; &quot;Taleaviricota&quot;, &quot;Taleaviricota&quot;, &quot;Tale…
-## $ subphylum                      &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
-## $ class                          &lt;chr&gt; &quot;Tokiviricetes&quot;, &quot;Tokiviricetes&quot;, &quot;Toki…
-## $ order                          &lt;chr&gt; &quot;Ligamenvirales&quot;, &quot;Ligamenvirales&quot;, &quot;Li…
-## $ suborder                       &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
-## $ family                         &lt;chr&gt; &quot;Lipothrixviridae&quot;, &quot;Lipothrixviridae&quot;,…
-## $ subfamily                      &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
-## $ genus                          &lt;chr&gt; &quot;Alphalipothrixvirus&quot;, &quot;Alphalipothrixv…
-## $ subgenus                       &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
-## $ species                        &lt;chr&gt; &quot;Alphalipothrixvirus SBFV2&quot;, &quot;Alphalipo…
-## $ exemplar_or_additional_isolate &lt;chr&gt; &quot;E&quot;, &quot;E&quot;, &quot;E&quot;, &quot;E&quot;, &quot;E&quot;, &quot;E&quot;, &quot;E&quot;, &quot;E&quot;,…
-## $ virus_name_s                   &lt;chr&gt; &quot;Sulfolobales Beppu filamentous virus 2…
-## $ virus_name_abbreviation_s      &lt;chr&gt; &quot;SBFV2&quot;, &quot;SFV1&quot;, &quot;AFV3&quot;, &quot;AFV6&quot;, &quot;AFV7&quot;…
-## $ virus_isolate_designation      &lt;chr&gt; &quot;SBFV2 clone B&quot;, &quot;SFV1 isolate S48&quot;, NA…
-## $ virus_genbank_accession        &lt;chr&gt; &quot;MK064563&quot;, &quot;MH447526&quot;, &quot;AM087120&quot;, &quot;AM…
-## $ virus_refseq_accession         &lt;chr&gt; &quot;NC_048128&quot;, &quot;NC_048037&quot;, &quot;NC_010155&quot;, …
-## $ genome_coverage                &lt;chr&gt; &quot;Complete coding genome&quot;, &quot;Complete gen…
-## $ genome_composition             &lt;chr&gt; &quot;dsDNA&quot;, &quot;dsDNA&quot;, &quot;dsDNA&quot;, &quot;dsDNA&quot;, &quot;ds…
-## $ host_source                    &lt;chr&gt; &quot;archaea&quot;, &quot;archaea&quot;, &quot;archaea&quot;, &quot;archa…</code></pre>
 <pre class="r"><code>#Creating a csv, both only containing usable genbank ids, and usable refseq ids.
 
 genbank_accessions &lt;- taxonomy_reference %&gt;%
@@ -3246,15 +3443,6 @@ taxonomy_reference %&gt;%
   filter(!is.na(virus_refseq_accession)) %&gt;%
   filter(!str_detect(virus_refseq_accession, &#39; &#39;)) %&gt;%
   write.csv(path(taxonomy_data_path, &#39;virus_refseq_accession.csv&#39;), row.names = FALSE)</code></pre>
-<pre class="r"><code>library(taxonomizr)
-# getAccession2taxid(
-#   outDir = path(taxonomy_data_path),
-#   baseUrl = &quot;ftp://ftp.ncbi.nih.gov/pub/taxonomy/accession2taxid/&quot;,
-#   types = c(&quot;nucl_gb&quot;)
-# )</code></pre>
-<p>Printing the first 5 lines of the resulting nucl_gb.accession2taxid in terminal gives us the following output:
-<code>accession   accession.version   taxid   gi A00001  A00001.1    10641   58418 A00002  A00002.1    9913    2 A00003  A00003.1    9913    3 A00004  A00004.1    32630   57971</code>
-#### Kraken Taxonomy</p>
 </div>
 </div>
 <div id="creating-an-otu-table-from-the-kraken2-reports" class="section level2" number="3.1">

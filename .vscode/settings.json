@@ -1,5 +1,6 @@
 {
     "cSpell.enableFiletypes": [
         "rmd"
-    ]
+    ],
+    "workbench.settings.editor": "json"
 }

@@ -250,30 +250,6 @@ kraken_taxonomies_expanded <- kraken_taxonomies %>%
 
 ```
 
-With the above template we can now create a function that will pull out the rows from the kraken2 reports that match the template taxonomy.
-
-TO BE CONTINUED ONCE WE HAVE KRAKEN2 TAXONOMY REPORTS
-
-```{r}
-#deprecated
-# pull_taxonomy_rows <- function(kraken_report) {
-#    desired_taxa <- template_taxonomy$taxonomy %>%
-#      Extracting the lowest taxonomic rank
-#      str_extract('([^__]*)$')
-#    kraken_report %>%
-#      filter(scientific_name %in% desired_taxa)
-# }
-
-# desired_rows <- pull_taxonomy_rows(kraken_reports)
-```
-<details>
-  <summary>*Code explainer*</summary>
-  We first extract the lowest taxonomic rank from the template taxonomy report. This is done by using the regular expression `([^__]*)$`. This expression
-  - looks backward from the end of the file with `$`,
-  - and eturns everything before the last occurrence of `__` by anchoring the end of the string (^) at `__`.
-
-  Next, we filter the given `kraken_report` report to only include the rows that contain the desired taxa, by matching on their scientific name, which equals the entries lowest taxonomic rank.
-</details>
 
 ```{r, warning=FALSE, message=FALSE}
 taxonomy_reference <- read_csv(path(taxonomy_data_path, 'taxonomy_reference.csv'), skip = 1) %>%
@@ -304,10 +280,11 @@ First, we subset all unique viral species taxonomies from the kraken2 taxonomic 
 kraken_viral_species <- kraken_taxonomies_expanded %>%
   # Extracting all Viruses
   filter(kingdom == 'viruses') %>%
-  # Dropping all rows with duplicate virus names. We are using keep_all to keep all other columns, not only virus.
+  # Dropping all rows with duplicate virus names, thus only keeping  We are using keep_all to keep all other columns, not only virus.
   distinct(species, .keep_all = TRUE) %>%
+  # Dropping all rows with NA values in the species column
+  filter(!is.na(species)) %>%
   glimpse()
-
 ```
 
 Then we define two functions both creating a vector, returning TRUE if a given **species** or **genus** name is present in the ICTV table.
@@ -348,7 +325,7 @@ virus_or_genus_present <- (virus_present | genus_present) %>%
   | is a logical OR operator, which returns TRUE if either of the two arguments are TRUE. We can use this to combine the results of the two functions, to end up with a logical vector, indicating true wherever either a kraken species or a genus matches in the ICTV table. More on Boolean algebra can be found [here](https://r4ds.hadley.nz/logicals.html#fig-bool-ops:~:text=Once%20you%20have%20multiple%20logical%20vectors%2C%20you%20can%20combine%20them%20together%20using%20Boolean%20algebra.%20In%20R%2C%20%26%20is%20%E2%80%9Cand%E2%80%9D%2C%20%7C%20is%20%E2%80%9Cor%E2%80%9D%2C%20!%20is%20%E2%80%9Cnot%E2%80%9D%2C%20and%20xor()%20is%20exclusive%20or2.)
 </details>
 
-Doing this we find that only **`r virus_or_genus_present`** of the **`r length(kraken_viral_species$species)`** species in the kraken2 match onto the ICTV table, either by species or genus name. This equates to **`r round((virus_or_genus_present / length(`r length(kraken_viral_species$species) *100))` %** of species in our kraken2 analyses.
+Doing this we find that only **`r virus_or_genus_present`** of the **`r length(kraken_viral_species$species)`** species in the kraken2 match onto the ICTV table, either by species or genus name. This equates to **`r round((virus_or_genus_present / length(kraken_viral_species$species) *100))` %** of species in our kraken2 analyses.
 
 ### Linking entries through higher taxonomic ranks
 
@@ -356,17 +333,112 @@ We could thus try to link genome composition to our kraken2 species', by identif
 
 Next, we want to identify on which taxonomic level we want link entries. We do this by figuring out which taxonomic level in the ICTV table is easily linkable while also maintaining unique genome composition.
 
-As seen below there are more than 1400 species that do not have the same genome composition as other species in their genus. This means that we cannot link entries by genus, as this would result in a lot of misclassifications.
+TODO - delete the latter: As seen below there are more than 1400 species that do not have the same genome composition as other species in their genus. This means that we cannot link entries by genus, as this would result in a lot of misclassifications.
 
 **As of now it seems we will have to link entries in various ways, as there is no single taxonomic level that is both homogenous and linkable.**
+
+
+
+### Reflecting on what I'm trying to do here
+
+I have now created full taxonomies for the kraken2 data. What we now want to do is link the genome composition info of the ICTV table to our kraken2 species data, either linking on species or genus. For this we
+ 1. String split genome composition information along into four columns containing i) single stranded or double stranded, ii) DNA, and RNA, iii) and + or - or +/-, and iv) RT or non -RT.
+ 2. Then we match the kraken2 data, first on species where we add all genome composition information.
+ 3. For sequences that do not match on species, we match on genus. Here we group_by genus, checking if any genome composition information is **ambiquous**. If this is the case, we will enter that value. If there is no value for this category of genome composition, we will return NA.
+
+
+```{r}
+#Pseudocode: Add four columns, each containing a single genome composition category
+taxonomy_reference_split_genome_comp <- taxonomy_reference %>%
+  mutate(
+    single_stranded_double_stranded = str_extract(genome_composition, 'ss|ds'),
+    DNA_RNA = str_extract(genome_composition, 'dna|rna'),
+    plus_minus = str_extract(genome_composition, '\\(\\+\\)|\\(\\-\\)|\\(\\+/-\\)'),
+    RT_non_RT = str_extract(genome_composition, '-rt|non-rt')
+  )
+
+#Count number of occurences for each of unique genome composition
+count_subset_genome_composition <- function (taxonomy_reference_split_genome_comp) {
+  #Count number of occurences for each of unique genome composition
+  taxonomy_reference_split_genome_comp %>%
+    count(single_stranded_double_stranded) %>%
+    print
+
+  taxonomy_reference_split_genome_comp %>%
+    count(DNA_RNA) %>%
+    print
+
+  taxonomy_reference_split_genome_comp %>%
+    count(plus_minus) %>%
+    print
+
+  taxonomy_reference_split_genome_comp %>%
+    count(RT_non_RT) %>%
+    print
+}
+
+count_subset_genome_composition(taxonomy_reference_split_genome_comp)
+
+taxonomy_reference_split_genome_comp %>%
+  #Print number of occurences for each of unique genome composition
+  count(DNA_RNA),
+  count(single_stranded_double_stranded),
+  print
+```
+
+
+Linking taxonomic information to `kraken_viral_species` by species
+
+```{r}
+
+
+
+kraken_viral_species_complete <- kraken_viral_species %>%
+  select(!full_taxonomy) %>%
+    left_join(
+      kraken_reports %>%
+        select(
+          scientific_name,
+          clade_coverage,
+          fragments_assigned,
+          ncbi_tax_id) %>%
+        mutate_if(is.character, tolower) %>%
+        mutate_if(is.character, ~str_replace_all(., ' ', '_')), #Turning all character variables into snake_case
+      by = c('species' = 'scientific_name') #Joining on species name
+    )
+```
+
+```
+
+```{r}
+#deprecated
+# pull_taxonomy_rows <- function(kraken_report) {
+#    desired_taxa <- template_taxonomy$taxonomy %>%
+#      Extracting the lowest taxonomic rank
+#      str_extract('([^__]*)$')
+#    kraken_report %>%
+#      filter(scientific_name %in% desired_taxa)
+# }
+
+# desired_rows <- pull_taxonomy_rows(kraken_reports)
+```
+<details>
+  <summary>*Code explainer*</summary>
+  We first extract the lowest taxonomic rank from the template taxonomy report. This is done by using the regular expression `([^__]*)$`. This expression
+  - looks backward from the end of the file with `$`,
+  - and eturns everything before the last occurrence of `__` by anchoring the end of the string (^) at `__`.
+
+  Next, we filter the given `kraken_report` report to only include the rows that contain the desired taxa, by matching on their scientific name, which equals the entries lowest taxonomic rank.
+</details>
+
 
 ```{r}
 non_unique_composition_genus <- taxonomy_reference %>%
   group_by(genus) %>%
   #Filter all genera with more than one genome composition
   filter(n_distinct(genome_composition) > 1) %>%
+  nrow %>%
   glimpse
-
 
 composition_w_o_pos_neg <- taxonomy_reference %>%
   mutate(
@@ -375,12 +447,27 @@ composition_w_o_pos_neg <- taxonomy_reference %>%
     genome_composition = str_replace_all(genome_composition, '\\(\\-\\)', '')
   )
 
-non_unique_composition_w_o_pos_neg <- composition_w_o_pos_neg %>%
+non_unique_composition_genus_w_o_pos_neg <- composition_w_o_pos_neg %>%
   group_by(genus) %>%
   #Filter all genera with more than one genome composition
   filter(n_distinct(genome_composition) > 1) %>%
+  nrow %>%
   glimpse
 
+
+non_unique_composition_family_w_o_pos_neg <- composition_w_o_pos_neg %>%
+  group_by(family) %>%
+  #Filter all genera with more than one genome composition
+  filter(n_distinct(genome_composition) > 1) %>%
+  nrow %>%
+  glimpse
+
+non_unique_composition_family <- taxonomy_reference %>%
+  group_by(family) %>%
+  #Filter all genera with more than one genome composition
+  filter(n_distinct(genome_composition) > 1) %>%
+  nrow %>%
+  glimpse
 
 
 unique(composition_w_o_pos_neg$genome_composition) %>%
@@ -406,15 +493,21 @@ taxonomy_reference %>% glimpse
 # glimpse
 ```
 
+
+
 ```{r}
+#How many species have attached genome composition information?
 taxonomy_reference %>%
-  filter(genus == "Alphapleolipovirus") %>%
+  filter(!is.na(genome_composition)) %>%
+  nrow() %>%
+  print
+
+virus_or_genus_present %>% sum %>% glimpse
+
+taxonomy_reference %>%
+  nrow() %>%
   glimpse
 ```
-
-### Linking genome composition information with NCBI Tax ID and GenBank accession number
-Here, we can use NCBI tools to ....
-
 
 
 
@@ -489,7 +582,10 @@ taxonomy_reference %>%
 ```
 
 
-
+```{r}
+#Number of rows in the kraken2 composite taxonomy dataframe
+nrow(kraken_viral_species)
+```
 
 
 
