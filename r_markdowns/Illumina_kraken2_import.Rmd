@@ -269,19 +269,16 @@ We have **three different ways** of linking viruses persent in the kraken2 repor
 
  1. Link entries by species name.
  2. Link virus genome composition by identifying common higher taxonomic lebels (e.g. family, genus, order, etc.) between the ICTV table and the kraken2 reports. These higher taxonomic levels would need to only have one possible genome composition state.
- 3. Link viruses by linking their NCBI Tax ID (given by Kraken2) and their GenBank accession number (given by ICTV).
 
 ### Linking entries by species name
 
 Let's try to link the viruses by species name first.
 
-First, we subset all unique viral species taxonomies from the kraken2 taxonomic reports.
+First, we subset all viral species taxonomies from the kraken2 taxonomic reports.
 ```{r, code_folding = "show", message=FALSE, warning=FALSE, output=FALSE}
 kraken_viral_species <- kraken_taxonomies_expanded %>%
   # Extracting all Viruses
   filter(kingdom == 'viruses') %>%
-  # Dropping all rows with duplicate virus names, thus only keeping  We are using keep_all to keep all other columns, not only virus.
-  distinct(species, .keep_all = TRUE) %>%
   # Dropping all rows with NA values in the species column
   filter(!is.na(species)) %>%
   glimpse()
@@ -331,7 +328,7 @@ Doing this we find that only **`r virus_or_genus_present`** of the **`r length(k
 
 We could thus try to link genome composition to our kraken2 species', by identifying higher taxonomic ranks that are more likely to be homogenous between both ICTV and Kraken2 taxonomies. We've previously created these taxonomies this by using kreport2mpa.py; the output files are found under `output/kraken/kraken2_standard_16gb/*.txt.mpa`.
 
-Next, we want to identify on which taxonomic level we want link entries. We do this by figuring out which taxonomic level in the ICTV table is easily linkable while also maintaining unique genome composition.
+Next, we want to identify on which taxonomic level we want to link entries. We do this by figuring out which taxonomic level in the ICTV table is easily linkable while also maintaining unique genome composition.
 
 TODO - delete the latter: As seen below there are more than 1400 species that do not have the same genome composition as other species in their genus. This means that we cannot link entries by genus, as this would result in a lot of misclassifications.
 
@@ -352,9 +349,9 @@ I have now created full taxonomies for the kraken2 data. What we now want to do 
 taxonomy_reference_split_genome_comp <- taxonomy_reference %>%
   mutate(
     single_stranded_double_stranded = str_extract(genome_composition, 'ss|ds'),
-    DNA_RNA = str_extract(genome_composition, 'dna|rna'),
+    dna_rna = str_extract(genome_composition, 'dna|rna'),
     plus_minus = str_extract(genome_composition, '\\(\\+\\)|\\(\\-\\)|\\(\\+/-\\)'),
-    RT_non_RT = str_extract(genome_composition, '-rt|non-rt')
+    rt_non_rt = str_extract(genome_composition, '-rt|non-rt')
   )
 
 #Count number of occurences for each of unique genome composition
@@ -365,7 +362,7 @@ count_subset_genome_composition <- function (taxonomy_reference_split_genome_com
     print
 
   taxonomy_reference_split_genome_comp %>%
-    count(DNA_RNA) %>%
+    count(dna_rna) %>%
     print
 
   taxonomy_reference_split_genome_comp %>%
@@ -373,42 +370,129 @@ count_subset_genome_composition <- function (taxonomy_reference_split_genome_com
     print
 
   taxonomy_reference_split_genome_comp %>%
-    count(RT_non_RT) %>%
+    count(rt_non_rt) %>%
     print
 }
 
 count_subset_genome_composition(taxonomy_reference_split_genome_comp)
 
-taxonomy_reference_split_genome_comp %>%
-  #Print number of occurences for each of unique genome composition
-  count(DNA_RNA),
-  count(single_stranded_double_stranded),
-  print
 ```
 
 
 Linking taxonomic information to `kraken_viral_species` by species
 
 ```{r}
-
-
-
 kraken_viral_species_complete <- kraken_viral_species %>%
-  select(!full_taxonomy) %>%
+  select(!full_taxonomy) %>% #Dropping full taxonomy column as information is now redundant
     left_join(
-      kraken_reports %>%
+      kraken_reports %>% #Subselecting all rows of interest
         select(
+          sample,
           scientific_name,
           clade_coverage,
           fragments_assigned,
           ncbi_tax_id) %>%
         mutate_if(is.character, tolower) %>%
         mutate_if(is.character, ~str_replace_all(., ' ', '_')), #Turning all character variables into snake_case
-      by = c('species' = 'scientific_name') #Joining on species name
+      by = c('species' = 'scientific_name', 'sample' = 'sample') #Joining on species name and sample
     )
 ```
+<details>
+  <summary>*Code explainer*</summary>
+  TODO: Explain by clause
+  It is important to use `by` with both `sample` and `species` as there are multiple entries for the same species in the kraken2 report. This is because the same species can be found in multiple samples. We thus need to join on the unique combinations of species and sample.
+</details>
+```
+
+Adding viral genome composition info to `kraken_viral_species_complete`
+
+```{r}
+desired_columns = c(
+  'single_stranded_double_stranded',
+  'dna_rna',
+  'plus_minus',
+  'rt_non_rt'
+)
+
+
+
+# Make the below vastly more efficient!
+add_species_genome_comp <- function(sample_report_line) {
+  if (species %in% taxonomy_reference_split_genome_comp$species) {
+    #If the species is in the taxonomy reference, we add the desired_columns to the sample_report_line
+    mutate(
+        single_stranded_double_stranded = taxonomy_reference_split_genome_comp %>%
+          filter(species == species) %>%
+          pull(single_stranded_double_stranded),
+        dna_rna = taxonomy_reference_split_genome_comp %>%
+          filter(species == species) %>%
+          pull(dna_rna),
+        plus_minus = taxonomy_reference_split_genome_comp %>%
+          filter(species == species) %>%
+          pull(plus_minus),
+        rt_non_rt = taxonomy_reference_split_genome_comp %>%
+          filter(species == species) %>%
+          pull(rt_non_rt)
+  } else if (species %in% taxonomy_reference_split_genome_comp$virus_name_s) {
+      mutate(
+          single_stranded_double_stranded = taxonomy_reference_split_genome_comp %>%
+            filter(virus_name_s == species) %>%
+            pull(single_stranded_double_stranded),
+          dna_rna = taxonomy_reference_split_genome_comp %>%
+            filter(virus_name_s == species) %>%
+            pull(dna_rna),
+          plus_minus = taxonomy_reference_split_genome_comp %>%
+            filter(virus_name_s == species) %>%
+            pull(plus_minus),
+          rt_non_rt = taxonomy_reference_split_genome_comp %>%
+            filter(virus_name_s == species) %>%
+            pull(rt_non_rt)
+  } else if (genus %in% taxonomy_reference_split_genome_comp$genus) {
+      if n_unique_single_stranded_double_stranded <- taxonomy_reference_split_genome_comp %>%
+          filter(genus == genus) %>%
+          pull(single_stranded_double_stranded) %>% unique() %>% length() == 1 {
+            mutate(
+              single_stranded_double_stranded = single_stranded_double_stranded)
+          } else {
+            mutate(
+              single_stranded_double_stranded = 'ambiguous')
+          }
+      if n_unique_dna_rna <- taxonomy_reference_split_genome_comp %>%
+          filter(genus == genus) %>%
+          pull(dna_rna) %>% unique() %>% length() == 1 {
+            mutate(
+              dna_rna = dna_rna)
+          } else {
+            mutate(
+              dna_rna = 'ambiguous')
+          }
+      if n_unique_plus_minus <- taxonomy_reference_split_genome_comp %>%
+          filter(genus == genus) %>%
+          pull(plus_minus) %>% unique() %>% length() == 1 {
+            mutate(
+              plus_minus = plus_minus)
+          } else {
+            mutate(
+              plus_minus = 'ambiguous')
+          }
+      if n_unique_rt_non_rt <- taxonomy_reference_split_genome_comp %>%
+          filter(genus == genus) %>%
+          pull(rt_non_rt) %>% unique() %>% length() == 1 {
+            mutate(
+              rt_non_rt = rt_non_rt)
+          } else {
+            mutate(
+              rt_non_rt = 'ambiguous')
+          }
+    return(FALSE)
+}
+}
+
+
+
 
 ```
+
 
 ```{r}
 #deprecated
