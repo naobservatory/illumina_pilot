@@ -382,7 +382,7 @@ count_subset_genome_composition(taxonomy_reference_split_genome_comp)
 Linking taxonomic information to `kraken_viral_species` by species
 
 ```{r}
-kraken_viral_species_complete <- kraken_viral_species %>%
+kraken_reports_with_taxonomies_viral_species <- kraken_viral_species %>%
   select(!full_taxonomy) %>% #Dropping full taxonomy column as information is now redundant
     left_join(
       kraken_reports %>% #Subselecting all rows of interest
@@ -407,92 +407,118 @@ kraken_viral_species_complete <- kraken_viral_species %>%
 Adding viral genome composition info to `kraken_viral_species_complete`
 
 ```{r}
-desired_columns = c(
-  'single_stranded_double_stranded',
-  'dna_rna',
-  'plus_minus',
-  'rt_non_rt'
-)
 
-
-
-# Make the below vastly more efficient!
-add_species_genome_comp <- function(sample_report_line) {
-  if (species %in% taxonomy_reference_split_genome_comp$species) {
-    #If the species is in the taxonomy reference, we add the desired_columns to the sample_report_line
-    mutate(
+create_gen_comp_records_on_species <- function(line_species) {
+  mutate(
         single_stranded_double_stranded = taxonomy_reference_split_genome_comp %>%
-          filter(species == species) %>%
+          filter(species == line_species) %>%
           pull(single_stranded_double_stranded),
         dna_rna = taxonomy_reference_split_genome_comp %>%
-          filter(species == species) %>%
+          filter(species == line_species) %>%
           pull(dna_rna),
         plus_minus = taxonomy_reference_split_genome_comp %>%
-          filter(species == species) %>%
+          filter(species == line_species) %>%
           pull(plus_minus),
         rt_non_rt = taxonomy_reference_split_genome_comp %>%
-          filter(species == species) %>%
+          filter(species == line_species) %>%
           pull(rt_non_rt)
-  } else if (species %in% taxonomy_reference_split_genome_comp$virus_name_s) {
+      )
+}
+
+create_gen_comp_records_on_genus <- function(line_genus) {
+  #Checking if any genome composition information is non_unique on the genus level, and thus ambiguous on the species level.
+  taxonomy_lines <- taxonomy_reference_split_genome_comp %>%
+      filter(genus == line_genus)
+  #Checking if double stranded/single stranded is ambiguous
+  if (taxonomy_lines %>% pull(single_stranded_double_stranded) %>%
+  unique() %>%
+  length() == 1)
+  {
       mutate(
-          single_stranded_double_stranded = taxonomy_reference_split_genome_comp %>%
-            filter(virus_name_s == species) %>%
-            pull(single_stranded_double_stranded),
-          dna_rna = taxonomy_reference_split_genome_comp %>%
-            filter(virus_name_s == species) %>%
-            pull(dna_rna),
-          plus_minus = taxonomy_reference_split_genome_comp %>%
-            filter(virus_name_s == species) %>%
-            pull(plus_minus),
-          rt_non_rt = taxonomy_reference_split_genome_comp %>%
-            filter(virus_name_s == species) %>%
-            pull(rt_non_rt)
-  } else if (genus %in% taxonomy_reference_split_genome_comp$genus) {
-      if n_unique_single_stranded_double_stranded <- taxonomy_reference_split_genome_comp %>%
-          filter(genus == genus) %>%
-          pull(single_stranded_double_stranded) %>% unique() %>% length() == 1 {
-            mutate(
-              single_stranded_double_stranded = single_stranded_double_stranded)
-          } else {
-            mutate(
-              single_stranded_double_stranded = 'ambiguous')
-          }
-      if n_unique_dna_rna <- taxonomy_reference_split_genome_comp %>%
-          filter(genus == genus) %>%
-          pull(dna_rna) %>% unique() %>% length() == 1 {
-            mutate(
-              dna_rna = dna_rna)
-          } else {
-            mutate(
-              dna_rna = 'ambiguous')
-          }
-      if n_unique_plus_minus <- taxonomy_reference_split_genome_comp %>%
-          filter(genus == genus) %>%
-          pull(plus_minus) %>% unique() %>% length() == 1 {
-            mutate(
-              plus_minus = plus_minus)
-          } else {
-            mutate(
-              plus_minus = 'ambiguous')
-          }
-      if n_unique_rt_non_rt <- taxonomy_reference_split_genome_comp %>%
-          filter(genus == genus) %>%
-          pull(rt_non_rt) %>% unique() %>% length() == 1 {
-            mutate(
-              rt_non_rt = rt_non_rt)
-          } else {
-            mutate(
-              rt_non_rt = 'ambiguous')
-          }
+        single_stranded_double_stranded = single_stranded_double_stranded
+        )
+  } else {
+      mutate(
+        single_stranded_double_stranded = 'ambiguous'
+        )
+  }
+  #Checking if DNA/RNA is ambiguous
+  if (taxonomy_lines %>% pull(dna_rna) %>%
+    unique() %>%
+    length() == 1)
+    {
+      mutate(
+        dna_rna = dna_rna
+        )
+  } else {
+      mutate(
+        dna_rna = 'ambiguous'
+        )
+  }
+  #Checking if plus/minus is ambiguous
+  if (taxonomy_lines %>% pull(plus_minus) %>%
+    unique() %>%
+    length() == 1 )
+    {
+      mutate(
+        plus_minus = plus_minus
+        )
+  }
+  else {
+      mutate(
+        plus_minus = 'ambiguous'
+        )
+  }
+  #Checking if RT/non-RT is ambiguous
+  if (taxonomy_lines %>% pull(rt_non_rt) %>%
+    unique() %>%
+    length() == 1 )
+    {
+      mutate(
+        rt_non_rt = rt_non_rt
+        )
+  }
+  else {
+      mutate(
+        rt_non_rt = 'ambiguous'
+        )
+  }
+}
+
+
+
+
+
+
+#Creating a function that adds the genome composition information to the kraken_viral_species_complete
+
+add_species_genome_comp <- function(sample_report_line) {
+  if (sample_report_line$species %in% taxonomy_reference_split_genome_comp$species)
+  {
+    #If the species matches `species` in taxonomy reference, we add the desired_columns to the sample_report_line
+    create_gen_comp_records_on_species(species)
+
+  }
+  else if (sample_report_line$species %in% taxonomy_reference_split_genome_comp$virus_name_s)
+  {
+      #If the species matches `virus_name_s` in taxonomy reference, we add the desired_columns to the sample_report_line
+      create_gen_comp_records_on_species(species)
+
+  }
+  else if (sample_report_line$genus %in% taxonomy_reference_split_genome_comp$genus)
+  {
+      #If the genus matches `genus` in taxonomy reference, we add the desired_columns to the sample_report_line
+      create_gen_comp_records_on_genus(genus)
     return(FALSE)
 }
 }
 
-
-
-
 ```
 
+
+```{r}
+kraken_reports_complete <- map(kraken_reports_with_taxonomies_viral_species, add_species_genome_comp)
+```
 
 ```{r}
 #deprecated
