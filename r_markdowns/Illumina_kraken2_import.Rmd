@@ -29,11 +29,7 @@ editor_options:
 
 
 # Introduction
-Here we *import*, *format*, and *clean* kraken2 results of our Illumina data. This report isn't meant to show results, but rather to show the steps taken to get towards a dataset with which we can analyse our Illumina sample composition.
-
-TODO: Link taxonomic kraken2 reports to every original kraken2 report.
-
-Do this with an R function that merges the taxonomic report with the original report, joining on the lowest taxonomic rank.
+Here we *import*, *format*, and *clean* kraken2 results of our Illumina data. This report isn't meant to show results, but rather to show the steps taken to get towards a dataset with which we can analyse our Illumina sample composition. This code should also be adaptable to other datasets.
 
 # Setup
 
@@ -89,30 +85,32 @@ sample_metadata <- read_sheet(
 
 #### Context
 
-We now read in our Kraken2 reports. Kraken2 is a tool for assigning taxonomic labels to unassembled (raw) DNA sequences. Kraken2 outputs a report for each sample, which contains the taxonomic labels assigned to each sequence, as well as the number of sequences assigned to each taxon. The reports are available in the `data/kraken_reports` directory.
+We now read in our Kraken2 reports. Kraken2 is a tool for assigning taxonomic labels to unassembled (raw) DNA sequences. Kraken2 outputs a report for each sample, which lists the the number of sequences assigned to each taxon. The reports are available in the `data/kraken_reports/kraken2_standard_16gb` directory.
 
-In this analyses we work with Kraken2 runs, using a 15 GB RefSeq database, called Standard-16, available [here](https://benlangmead.github.io/aws-indexes/k2). Previously we used a smaller RefSeq database (~7.5 GB) called Standard-8 or Minikraken, viewable [here](https://benlangmead.github.io/aws-indexes/k2#:~:text=to%20use%20it.-,Kraken%202%20/%20Bracken%20Refseq%20indexes,-Starting%20Fall%202020)
+In this analyses we work with Kraken2 runs using a 15 GB RefSeq database, called Standard-16, available [here](https://benlangmead.github.io/aws-indexes/k2).
 
 #### Kraken2 report structure
 
 A typical Kraken2 report looks like this:
 
 ```
- 97.51	1082761	1082761	U	0	unclassified
-  2.49	27631	210	R	1	root
-  2.20	24479	26	R1	131567	  cellular organisms
-  2.00	22186	542	D	2	    Bacteria
-  1.14	12682	258	P	1224	      Proteobacteria
-  0.54	6049	99	C	1236	        Gammaproteobacteria
-  0.22	2488	2	O	72274	          Pseudomonadales
-  0.16	1766	2	F	468	            Moraxellaceae
-  0.15	1639	135	G	469	              Acinetobacter
-  0.04	409	324	S	40214	                Acinetobacter johnsonii
-  0.01	85	85	S1	1242245	                  Acinetobacter johnsonii XBB1
-  0.03	313	3	G1	196816	                unclassified Acinetobacter
-  0.01	146	146	S	2004646	                  Acinetobacter sp. WCHA55
-  0.00	47	47	S	2079596	                  Acinetobacter sp. SWBY1
-  0.00	19	19	S	1879049	                  Acinetobacter sp. WCHAc010034
+
+clade_coverage  fragments_covered  fragments_assigned  rank_code  ncbi_tax_id  scientific_name
+ 97.51	        1082761	           1082761	           U	        0	            unclassified
+  2.49	        27631	             210	               R	        1	              root
+  2.20	        24479	             26	                 R1	        131567	         cellular organisms
+  2.00	        22186	             542	               D	        2	                Bacteria
+  1.14	        12682	             258	               P	        1224	              Proteobacteria
+  0.54	        6049	             99	                 C	        1236	                Gammaproteobacteria
+  0.22	        2488	             2	                 O	        72274	                  Pseudomonadales
+  0.16	        1766	             2	                 F	        468	                      Moraxellaceae
+  0.15	        1639	             135	               G	        469	                        Acinetobacter
+  0.04	        409	               324	               S	        40214	                          Acinetobacter johnsonii
+  0.01	        85	               85	                 S1	        1242245	                         Acinetobacter johnsonii XBB1
+  0.03	        313	               3	                 G1	        196816	                     unclassified Acinetobacter
+  0.01	        146	               146	               S	        2004646	                        Acinetobacter sp. WCHA55
+  0.00	        47	               47	                 S	        2079596	                        Acinetobacter sp. SWBY1
+  0.00	        19	               19	                 S	        1879049	                        Acinetobacter sp. WCHAc010034
 ```
 
 There are six columns:
@@ -213,7 +211,7 @@ read_kraken_taxonomy <- function(kraken_taxonomy) {
 ```
 <details>
   <summary>*Code explainer*</summary>
-  Defining a function to read in a kraken2 taxonomy report (txt.mpa). We specify the column names (`col_names) and types (`col_types`), and then use `read_tsv` to read in the given `kraken_t`.
+  Defining a function to read in a kraken2 taxonomy report (txt.mpa). We specify the column names (`col_names) and types (`col_types`), and then use `read_tsv` to read in the given `kraken_taxonomy`.
 </details>
 ```{r}
 names(taxonomy_fns) <- str_extract(taxonomy_fns %>% path_file, '^.*(?=_kraken2_report.txt.mpa)')
@@ -222,8 +220,11 @@ kraken_taxonomies <- map_dfr(taxonomy_fns, read_kraken_taxonomy, .id = 'sample')
   mutate_if(is.character, ~str_replace_all(., ' ', '_')) %>%
   glimpse()
 ```
-
-Now we want to turn the full taxonomy column into several taxonomic ranks. We can do this by splitting the full taxonomy column on the |.
+<details>
+  <summary>*Code explainer*</summary>
+  As done previously we read in all taxonomies into one R dataframe. Importantly we also use `tolower` and `str_replace_all(., ' ', '_')` on all characters within the dataframe. Doing this turns all text into [`snake_case`](https://en.wikipedia.org/wiki/Snake_case), a more convenient writing style.
+</details>
+Now we want to turn the full taxonomy column into several taxonomic ranks. We can do this by splitting the full taxonomy column on the | and using regex formulas to extract the respective taxonomic ranks.
 ```{r}
 #Finish explainer of code below
 kraken_taxonomies_expanded <- kraken_taxonomies %>%
@@ -240,16 +241,15 @@ kraken_taxonomies_expanded <- kraken_taxonomies %>%
 ```
 <details>
   <summary>*Code explainer*</summary>
-  Positive Lookbehind (?<=c__)
-  Assert that the Regex below matches
-  c__ matches the characters c__ literally (case sensitive)
-  Match a single character not present in the list below [^|]
-  + matches the previous token between one and unlimited times, as many times as possible, giving back as needed (greedy)
-  | matches the character | with index 12410 (7C16 or 1748) literally (case sensitive)
+  Explaining the Regex used here:
+  The regular expression starts with a positive lookbehind: `(?<=pattern)` which starts a match *after* the given patterns. This is used to match each taxonomic rank individually, e.g. `k__` or `p__`. Excluding the rank pattern, the `[^|]` matches *any* character that is not a `|` character. The `+` matches the previous token between one and unlimited times, as many times as possible. The + thus stops as soon as it encounters a `|` character, which is the end of the taxonomic rank.
 </details>
 
-```
+## Linking genome composition information with kraken2 entries
 
+We now want link genome composition for all assigned species in our kraken2 results. Information about genome composition for ~all viral species can be found in a metadata table provided by ICTV ([source](https://ictv.global/vmr)), viewable as a google sheet [here](https://docs.google.com/spreadsheets/d/1mufrHxLlTnDR37YLnWeauXYXTm0dZKXYoPOiMemP2GY/edit?usp=sharing).
+
+If this analysis is done again in the future (which is likely), make sure to check if the ICTV table has been updated.
 
 ```{r, warning=FALSE, message=FALSE}
 taxonomy_reference <- read_csv(path(taxonomy_data_path, 'taxonomy_reference.csv'), skip = 1) %>%
@@ -260,15 +260,16 @@ taxonomy_reference <- read_csv(path(taxonomy_data_path, 'taxonomy_reference.csv'
   mutate_if(is.character, ~str_replace_all(., ' ', '_')) %>%
   glimpse
 ```
+<details>
+  <summary>*Code explainer*</summary>
+  As done previously, reading in using read_csv.We use `tolower` and `str_replace_all(., ' ', '_')` on all character variables within the dataframe. Doing this turns all text into [`snake_case`](https://en.wikipedia.org/wiki/Snake_case).
+</details>
 
-## Linking genome composition information with kraken2 entries
-
-We have useful metadata about ~all viral species in the ICTV table ([source](https://ictv.global/vmr)), viewable as a google sheet [here](https://docs.google.com/spreadsheets/d/1mufrHxLlTnDR37YLnWeauXYXTm0dZKXYoPOiMemP2GY/edit?usp=sharing).
-
-We have **three different ways** of linking viruses persent in the kraken2 reports with the ICTV table:
+We originally thought of **three different ways** of linking viruses persent in the kraken2 reports with the ICTV table:
 
  1. Link entries by species name.
  2. Link virus genome composition by identifying common higher taxonomic lebels (e.g. family, genus, order, etc.) between the ICTV table and the kraken2 reports. These higher taxonomic levels would need to only have one possible genome composition state.
+ 3.
 
 ### Linking entries by species name
 
@@ -495,19 +496,19 @@ create_gen_comp_records_on_genus <- function(line_genus) {
 add_species_genome_comp <- function(sample_report_line) {
   if (sample_report_line$species %in% taxonomy_reference_split_genome_comp$species)
   {
-    #If the species matches `species` in taxonomy reference, we add the desired_columns to the sample_report_line
+    #If the species matches `species` in taxonomy reference, we add the respective genome composition information to the sample_report_line
     create_gen_comp_records_on_species(species)
 
   }
   else if (sample_report_line$species %in% taxonomy_reference_split_genome_comp$virus_name_s)
   {
-      #If the species matches `virus_name_s` in taxonomy reference, we add the desired_columns to the sample_report_line
+      #If the species matches `virus_name_s` in taxonomy reference, we add the respective genome composition information to the sample_report_line
       create_gen_comp_records_on_species(species)
 
   }
   else if (sample_report_line$genus %in% taxonomy_reference_split_genome_comp$genus)
   {
-      #If the genus matches `genus` in taxonomy reference, we add the desired_columns to the sample_report_line
+      #If the genus matches `genus` in taxonomy reference, we add the respective genome composition information to the sample_report_line
       create_gen_comp_records_on_genus(genus)
     return(FALSE)
 }
