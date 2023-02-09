@@ -7,3 +7,8 @@ iii) import of kraken2 results and linking kraken2 data with [ICTV metadata](htt
 DNA sequences that are analyzed here stem from 12 Illumina samples; gained from aliquots from the same 0.5L wastewater sample, taken from an anonymous wastewater plant.
 
 More information on the sequencing runs can be found [here](https://docs.google.com/document/d/1QiYgZGewYyg2gFzawYGRzTuMXbvwpJsTy27k3IrH3fQ/edit#)(only accessible for NAO members).
+
+# TODOs
+- [ ] add more information on the samples
+- [ ] add more information on the sequencing runs and wetlab protocols
+- [ ] Fix genome composition assignment in Illumina_kraken2_import.Rmd (function: `call_phenotype_cols`)
