@@ -1,4 +1,4 @@
-This folder contains Kraken2 reports, run by Phil Palmer in the lab. The reports are named by the sample ID, every report is a tab delimited .txt file.
+This folder contains Kraken2 reports, run by Phil Palmer. The reports are named by the sample ID, every report is a tab delimited .txt file.
 
 The different columns in the report are:
 

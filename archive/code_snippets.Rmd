@@ -1,0 +1,182 @@
+---
+title: "Illumina Kraken 2 Import"
+author:
+  - name: Simon Grimm
+    url: {simongrimm.com}
+date: 2022-11-14
+description: |
+categories:
+draft: false
+output:
+  bookdown::html_document2:
+    toc: yes
+    toc_float: yes
+    toc_collapsed: yes
+    df_print: paged
+    code_folding: show
+    theme: lumen
+    warning: false
+    cache: true
+    echo: false
+    autodep: true
+    cache.comment: false
+    dpi: 300
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+
+
+# Introduction
+Here we *import*, *format*, and *clean* kraken2 results of our Illumina data. This report isn't meant to show results, but rather to show the steps taken to get towards a dataset with which we can analyse our Illumina sample composition. This code should also be adaptable to other datasets.
+
+We also show how to link a kraken report with International Committee on Taxonomy of Viruses (ICTV)
+[metadata](https://ictv.global/vmr).
+
+# Setup
+
+## R packages
+
+```{r, message=FALSE}
+# set of data analysis and viz tools
+library(tidyverse)
+
+# file system helpers
+library(fs)
+library(googlesheets4)
+
+# specifying locations within a project
+library(here)
+
+# plotting helpers
+library(cowplot)
+theme_set(theme_cowplot())
+library(patchwork)
+library(ggbeeswarm)
+```
+
+## Defining directories
+
+```{r, message=FALSE}
+metadata_data_path <- here("data/metadata")
+kraken_data_path <- here("data/kraken_reports/kraken2_standard_16gb")
+taxonomy_data_path <- here("data/taxonomy")
+output_data_path <- here("output")
+project_path <- here('../illumina_pilot')
+```
+
+
+
+
+Adding viral genome composition info to `kraken_viral_species_complete`
+
+
+# Outdated code - ignore
+
+```{r}
+kraken_reports_with_taxonomies_viral_species <- kraken_viral_species %>%
+  select(!full_taxonomy) %>% #Dropping full taxonomy column as information is now redundant
+    left_join(
+      kraken_reports %>% #Subselecting all rows of interest
+        select(
+          sample,
+          scientific_name,
+          clade_coverage,
+          fragments_assigned,
+          ncbi_tax_id) %>%
+        mutate_if(is.character, tolower) %>%
+        mutate_if(is.character, ~str_replace_all(., ' ', '_')), #Turning all character variables into snake_case
+      by = c('species' = 'scientific_name', 'sample' = 'sample') #Joining on species name and sample
+    )
+```
+
+```{r}
+# If using VSCode You will need to switch to the bash kernel to run this.
+
+# Or, you can try this: https://www.ncbi.nlm.nih.gov/guide/howto/dwn-records/
+
+# for ACC in
+
+# #Read out the first column of the file 10170_full_taxonomy.txt
+# for ACC in cut -f 1 10170_full_taxonomy.txt |\
+# echo
+# # Remove the first line (the header)
+# MK064563 MH447526 AM087120 AM087121 AM087122 AM087123 EU545650 AF440571
+# do
+#    echo -n -e "$ACC\t"
+#    # Now we cut the taxid from the line. The taxid is between the '>' and '<' characters. -d '>' means cut on the '>' character, f 2 means take the second field (the one after the cut). -d '<' means cut on the '<' character, -f 1 means take the first field the one before the cut).
+#    curl -s "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nuccore&id=${ACC}&rettype=fasta&retmode=xml" |\
+#    grep TSeq_taxid |\
+#    cut -d '>' -f 2 |\
+#    cut -d '<' -f 1 |\
+#    tr -d "\n"
+#    echo
+#  done
+```
+
+### Tax table
+
+We could create the tax table either by inferring the taxonomy from the kraken2 reports, or by using the ictv taxonomy table. I ill try both approaches.
+
+#### ICTV Taxonomy
+
+```{r}
+
+
+#Creating a csv, both only containing usable genbank ids, and usable refseq ids.
+
+genbank_accessions <- taxonomy_reference %>%
+  select(virus_genbank_accession) %>%
+  distinct(virus_genbank_accession, .keep_all = TRUE) %>% #select unique species
+  filter(!is.na(virus_genbank_accession)) %>% #drop NA entries
+  filter(!str_detect(virus_genbank_accession, ' ')) %>% #drop entries with spaces
+  filter(!str_detect(virus_genbank_accession, ':')) %>% #drop entries with colons
+  write.csv(path(taxonomy_data_path, 'virus_genbank_accession.csv'), row.names = FALSE)
+
+#taxonomy_reference %>%
+#  select(virus_refseq_accession) %>%
+  distinct(virus_refseq_accession) %>%
+  filter(!is.na(virus_refseq_accession)) %>%
+  filter(!str_detect(virus_refseq_accession, ' ')) %>%
+  write.csv(path(taxonomy_data_path, 'virus_refseq_accession.csv'), row.names = FALSE)
+
+```
+
+
+```{r}
+#Number of rows in the kraken2 composite taxonomy dataframe
+nrow(kraken_viral_species)
+```
+#
+
+
+## Creating an otu table from the kraken2 reports
+To get where we want we first need to take a look at how our kraken2 dataframes look like.
+
+From this table we can see that we have a lot of information that we don't need. We only need the ncbi_tax_id and the ragments_assigned of all species. We can filter down to these columns using the select function and filter down to the species evel using the filter function.
+
+We combine these steps in a function called fun_subset_otu_table.
+
+**ACTION** The final line of code in the function below should rename the fragments_covered column to the sample name. Using eparse(substitute(.))
+
+
+## Building the phyloseq object
+
+Now that we have both our metadata and our otu table we can build our phyloseq object. We start by creating a sample_data object rom our metadata dataframe.
+
+**ACTION** Code is not working yet. Likely due to mismatches (of unknown nature) between the otu_table and the sample_data. Also, he tax_table still needs to be created, as outlined earlier.
+```{r}
+#ps <- phyloseq(
+#  otu_table(otu_kraken %>% as.matrix, taxa_are_rows = TRUE),
+#  sample_data(sample_metadata)
+#)
+```
+
+
+
+## Potential todos
+
+Look into the following:
+ - Assigning taxonomic information to all species in a genus if more than 50% of the species in that genus have the same taxonomic nformation
+# - Potentially spell out uncertainty introduced in the above step. -->

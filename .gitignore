@@ -70,8 +70,6 @@ fastqc_analyses/raw_sequences/*
 fastqc_analyses/raw_sequences_compressed/
 !fastqc_analyses/raw_sequences_compressed/.gitkeep
 
-
-
 #MacOS files
 .DS_Store
 
