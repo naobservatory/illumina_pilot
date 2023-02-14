@@ -90,25 +90,19 @@ In this analyses we work with Kraken2 runs using a 15 GB RefSeq database, called
 
 A typical Kraken2 report looks like this:
 
-```
+| clade_coverage | fragments_covered | fragments_assigned | rank_code | ncbi_tax_id | scientific_name |
+|----------------|-------------------|-------------------|-----------|------------|-----------------|
+| 97.51          | 1082761           | 1082761           | U         | 0          | unclassified   |
+| 2.49           | 27631             | 210               | R         | 1          | root           |
+| 2.20           | 24479             | 26                | R1        | 131567     | cellular organisms |
+| 2.00           | 22186             | 542               | D         | 2          | Bacteria       |
+| 1.14           | 12682             | 258               | P         | 1224       | Proteobacteria |
+| 0.54           | 6049              | 99                | C         | 1236       | Gammaproteobacteria |
+| 0.22           | 2488              | 2                 | O         | 72274      | Pseudomonadales |
+| 0.16           | 1766              | 2                 | F         | 468        | Moraxellaceae |
+| 0.15           | 1639              | 135               | G         | 469        | Acinetobacter |
+| 0.04           | 409               | 324               | S         | 40214      | Acinetobacter johnsonii |
 
-clade_coverage  fragments_covered  fragments_assigned  rank_code  ncbi_tax_id  scientific_name
- 97.51	        1082761	           1082761	           U	        0	            unclassified
-  2.49	        27631	             210	               R	        1	              root
-  2.20	        24479	             26	                 R1	        131567	         cellular organisms
-  2.00	        22186	             542	               D	        2	                Bacteria
-  1.14	        12682	             258	               P	        1224	              Proteobacteria
-  0.54	        6049	             99	                 C	        1236	                Gammaproteobacteria
-  0.22	        2488	             2	                 O	        72274	                  Pseudomonadales
-  0.16	        1766	             2	                 F	        468	                      Moraxellaceae
-  0.15	        1639	             135	               G	        469	                        Acinetobacter
-  0.04	        409	               324	               S	        40214	                          Acinetobacter johnsonii
-  0.01	        85	               85	                 S1	        1242245	                         Acinetobacter johnsonii XBB1
-  0.03	        313	               3	                 G1	        196816	                     unclassified Acinetobacter
-  0.01	        146	               146	               S	        2004646	                        Acinetobacter sp. WCHA55
-  0.00	        47	               47	                 S	        2079596	                        Acinetobacter sp. SWBY1
-  0.00	        19	               19	                 S	        1879049	                        Acinetobacter sp. WCHAc010034
-```
 
 There are six columns:
 
@@ -424,10 +418,10 @@ ictv_phenotype_cols = c('ictv_single_stranded_double_stranded', 'ictv_dna_rna', 
 
 genus_composition <- taxonomy_genome_composition %>%
   group_by(ictv_genus) %>%
-  filter(!duplicated(ictv_genus)) %>%
   summarise(
     across(all_of(ictv_phenotype_cols), call_phenotype_cols)
-  )
+  ) %>%
+  filter(!duplicated(ictv_genus))
 ```
 
 ### Merging dataframes
@@ -469,13 +463,13 @@ viral_genome_composition <- kraken_unique_viral_species %>%
 <details>
   <summary>*Code explainer*</summary>
 	In summary, in the code above we do the following: First, we use `rowwise` to iterate through our `kraken_unique_viral_species` dataframe row by row. For each row we will append four values, `ictv_single_stranded_double_stranded`, `ictv_dna_rna`, `ictv_plus_minus`, and `ictv_rt_non_rt`. We then use `case_when` to go through three different if-conditions. The syntax of `case_when is as follows:
-	```
+
 	case_when(
 		condition1 ~ value1,
 		condition2 ~ value2,
 		condition3 ~ value3
 		)
-	```
+
 	Hence, here we check first if the species name of the current `kraken_species` row is present in the `ictv_virus_name_s` column of the `virus_name_composition` dataframe. If it is, we pull the genome composition informatoin from the respective line in the `virus_name_composition` dataframe. We do the same for the species and the genus dataframes (`species_composition` and `genus_composition`). Importantly, the values we pull from any of these  dataframe are transformed into a list; this is because `mutate` can only assign one column at a time. We thus create a column containing a list of the genome composition information for each row. Finally, we use `ungroup` to remove the grouping we created using `rowwise`. Then, we use `unnest_wider` to unnest the list we created using `case_when` and append the values to the dataframe.
 </details>
 

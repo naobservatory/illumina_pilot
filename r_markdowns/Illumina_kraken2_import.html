@@ -2905,33 +2905,7 @@ project_path &lt;- here(&#39;../illumina_pilot&#39;)</code></pre>
 <pre class="r"><code>#Reading in metadata from this google sheet link:
 sample_metadata &lt;- read_sheet(
   &#39;https://docs.google.com/spreadsheets/d/1a7BHgb0_NPgey61IHlsF-RP2_EBhAUyW4e377oHQs1k/edit&#39;) %&gt;%
-  janitor::clean_names() %&gt;%
-  glimpse</code></pre>
-<pre><code>## Rows: 12
-## Columns: 23
-## $ sample_name           &lt;dbl&gt; 10170, 10172, 10175, 10176, 10180, 10330, 10331,…
-## $ bmc_project_name      &lt;chr&gt; &quot;221014Esv&quot;, &quot;221014Esv&quot;, &quot;221014Esv&quot;, &quot;221014Es…
-## $ bmc_duplicate_name    &lt;chr&gt; &quot;NA&quot;, &quot;NA&quot;, &quot;NA&quot;, &quot;NA&quot;, &quot;NA&quot;, &quot;D22-10169&quot;, &quot;D22-…
-## $ femtopulse_identifier &lt;chr&gt; &quot;70_1:10&quot;, &quot;72_2ul&quot;, &quot;75_2ul&quot;, &quot;76_2ul&quot;, &quot;80_2ul…
-## $ total_reads           &lt;dbl&gt; 2233884, 404, 1464, 1322, 438, 2793350, 2768038,…
-## $ sample_abbreviation   &lt;chr&gt; &quot;P2&quot;, &quot;P-C&quot;, &quot;CF&quot;, &quot;CU-C&quot;, &quot;A-C&quot;, &quot;P1&quot;, &quot;P3&quot;, &quot;C…
-## $ concentration_method  &lt;chr&gt; &quot;PEG&quot;, &quot;PEG&quot;, &quot;Ceres&quot;, &quot;Amicon&quot;, &quot;Amicon&quot;, &quot;PEG&quot;…
-## $ sample                &lt;chr&gt; &quot;PEG filtered 2&quot;, &quot;PEG Control&quot;, &quot;Ceres filtered…
-## $ host_organism         &lt;chr&gt; &quot;Human&quot;, &quot;Human&quot;, &quot;Human&quot;, &quot;Human&quot;, &quot;Human&quot;, &quot;Hu…
-## $ illumina_id           &lt;chr&gt; &quot;2 IL&quot;, &quot;4 IL&quot;, &quot;7 IL&quot;, &quot;8 IL&quot;, &quot;12 IL&quot;, &quot;1 IL&quot;,…
-## $ sample_type           &lt;chr&gt; &quot;Environmental&quot;, &quot;Environmental&quot;, &quot;Environmental…
-## $ nucleotide_type       &lt;chr&gt; &quot;DNA&quot;, &quot;DNA&quot;, &quot;DNA&quot;, &quot;DNA&quot;, &quot;DNA&quot;, &quot;DNA&quot;, &quot;DNA&quot;,…
-## $ collection_date       &lt;dttm&gt; 2020-05-01, 2020-05-01, 2020-05-01, 2020-05-01,…
-## $ wastewater_plant      &lt;chr&gt; &quot;Anonymous&quot;, &quot;Anonymous&quot;, &quot;Anonymous&quot;, &quot;Anonymou…
-## $ is_enriched           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-## $ water_control         &lt;chr&gt; &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, …
-## $ collection_location   &lt;chr&gt; &quot;Treatment Plant 1&quot;, &quot;Treatment Plant 1&quot;, &quot;Treat…
-## $ vol                   &lt;dbl&gt; 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13
-## $ conc_ng_u_l           &lt;list&gt; 0.8, 0.068, &quot;null&quot;, &quot;null&quot;, &quot;null&quot;, 3.71, 1.72, …
-## $ pool                  &lt;chr&gt; &quot;null&quot;, &quot;null&quot;, &quot;null&quot;, &quot;null&quot;, &quot;null&quot;, &quot;null&quot;, …
-## $ notes                 &lt;chr&gt; &quot;Type=genomicDNA; Notes=PEG 2&quot;, &quot;Type=genomicDN…
-## $ genome                &lt;chr&gt; &quot;null&quot;, &quot;null&quot;, &quot;null&quot;, &quot;null&quot;, &quot;null&quot;, &quot;null&quot;, …
-## $ filtered              &lt;dbl&gt; 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1</code></pre>
+  janitor::clean_names()</code></pre>
 </div>
 <div id="kraken2-reports" class="section level2" number="3.2">
 <h2><span class="header-section-number">3.2</span> Kraken2 reports</h2>
@@ -2943,23 +2917,108 @@ sample_metadata &lt;- read_sheet(
 <div id="kraken2-report-structure" class="section level3" number="3.2.2">
 <h3><span class="header-section-number">3.2.2</span> Kraken2 report structure</h3>
 <p>A typical Kraken2 report looks like this:</p>
-<pre><code>
-clade_coverage  fragments_covered  fragments_assigned  rank_code  ncbi_tax_id  scientific_name
- 97.51          1082761            1082761             U            0               unclassified
-  2.49          27631                210                   R            1                 root
-  2.20          24479                26                  R1         131567           cellular organisms
-  2.00          22186                542                   D            2                   Bacteria
-  1.14          12682                258                   P            1224                  Proteobacteria
-  0.54          6049                 99                  C          1236                    Gammaproteobacteria
-  0.22          2488                 2                   O          72274                     Pseudomonadales
-  0.16          1766                 2                   F          468                       Moraxellaceae
-  0.15          1639                 135                   G            469                         Acinetobacter
-  0.04          409                324                 S            40214                             Acinetobacter johnsonii
-  0.01          85                 85                    S1         1242245                          Acinetobacter johnsonii XBB1
-  0.03          313                3                     G1         196816                       unclassified Acinetobacter
-  0.01          146                146                 S            2004646                         Acinetobacter sp. WCHA55
-  0.00          47                 47                    S          2079596                         Acinetobacter sp. SWBY1
-  0.00          19                 19                    S          1879049                         Acinetobacter sp. WCHAc010034</code></pre>
+<table style="width:100%;">
+<colgroup>
+<col width="17%" />
+<col width="20%" />
+<col width="20%" />
+<col width="11%" />
+<col width="12%" />
+<col width="18%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>clade_coverage</th>
+<th>fragments_covered</th>
+<th>fragments_assigned</th>
+<th>rank_code</th>
+<th>ncbi_tax_id</th>
+<th>scientific_name</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>97.51</td>
+<td>1082761</td>
+<td>1082761</td>
+<td>U</td>
+<td>0</td>
+<td>unclassified</td>
+</tr>
+<tr class="even">
+<td>2.49</td>
+<td>27631</td>
+<td>210</td>
+<td>R</td>
+<td>1</td>
+<td>root</td>
+</tr>
+<tr class="odd">
+<td>2.20</td>
+<td>24479</td>
+<td>26</td>
+<td>R1</td>
+<td>131567</td>
+<td>cellular organisms</td>
+</tr>
+<tr class="even">
+<td>2.00</td>
+<td>22186</td>
+<td>542</td>
+<td>D</td>
+<td>2</td>
+<td>Bacteria</td>
+</tr>
+<tr class="odd">
+<td>1.14</td>
+<td>12682</td>
+<td>258</td>
+<td>P</td>
+<td>1224</td>
+<td>Proteobacteria</td>
+</tr>
+<tr class="even">
+<td>0.54</td>
+<td>6049</td>
+<td>99</td>
+<td>C</td>
+<td>1236</td>
+<td>Gammaproteobacteria</td>
+</tr>
+<tr class="odd">
+<td>0.22</td>
+<td>2488</td>
+<td>2</td>
+<td>O</td>
+<td>72274</td>
+<td>Pseudomonadales</td>
+</tr>
+<tr class="even">
+<td>0.16</td>
+<td>1766</td>
+<td>2</td>
+<td>F</td>
+<td>468</td>
+<td>Moraxellaceae</td>
+</tr>
+<tr class="odd">
+<td>0.15</td>
+<td>1639</td>
+<td>135</td>
+<td>G</td>
+<td>469</td>
+<td>Acinetobacter</td>
+</tr>
+<tr class="even">
+<td>0.04</td>
+<td>409</td>
+<td>324</td>
+<td>S</td>
+<td>40214</td>
+<td>Acinetobacter johnsonii</td>
+</tr>
+</tbody>
+</table>
 <p>There are six columns:</p>
 <ul>
 <li><code>clade_coverage</code>: Percentage of fragments covered by the clade rooted at this taxon</li>
@@ -3061,13 +3120,7 @@ Defining a function to read in a kraken2 taxonomy report (txt.mpa). We specify t
 <pre class="r"><code>names(taxonomy_fns) &lt;- str_extract(taxonomy_fns %&gt;% path_file, &#39;^.*(?=_kraken2_report.txt.mpa)&#39;)
 kraken_taxonomies &lt;- map_dfr(taxonomy_fns, read_kraken_taxonomy, .id = &#39;sample&#39;) %&gt;%
   mutate_if(is.character, tolower) %&gt;%
-  mutate_if(is.character, ~str_replace_all(., &#39; &#39;, &#39;_&#39;)) %&gt;%
-  glimpse()</code></pre>
-<pre><code>## Rows: 309,672
-## Columns: 3
-## $ sample            &lt;chr&gt; &quot;10170&quot;, &quot;10170&quot;, &quot;10170&quot;, &quot;10170&quot;, &quot;10170&quot;, &quot;10170&quot;…
-## $ full_taxonomy     &lt;chr&gt; &quot;k__bacteria&quot;, &quot;k__bacteria|p__proteobacteria&quot;, &quot;k__…
-## $ fragments_covered &lt;int&gt; 37951, 20709, 9756, 2921, 2921, 2699, 888, 107, 101,…</code></pre>
+  mutate_if(is.character, ~str_replace_all(., &#39; &#39;, &#39;_&#39;))</code></pre>
 <details>
 <summary>
 <em>Code explainer</em>
@@ -3075,8 +3128,7 @@ kraken_taxonomies &lt;- map_dfr(taxonomy_fns, read_kraken_taxonomy, .id = &#39;s
 As done previously we read in all taxonomies into one R dataframe. Importantly we also use <code>tolower</code> and <code>str_replace_all(., &#39; &#39;, &#39;_&#39;)</code> on all characters within the dataframe. Doing this turns all text into <a href="https://en.wikipedia.org/wiki/Snake_case"><code>snake_case</code></a>, a more convenient writing style.
 </details>
 <p>Now we want to turn the full taxonomy column into several taxonomic ranks. We can do this by splitting the full taxonomy column on the | and using regex formulas to extract the respective taxonomic ranks.</p>
-<pre class="r"><code>#Finish explainer of code below
-kraken_taxonomies_expanded &lt;- kraken_taxonomies %&gt;%
+<pre class="r"><code>kraken_taxonomies_expanded &lt;- kraken_taxonomies %&gt;%
   mutate(
     kingdom = str_extract(full_taxonomy, &quot;(?&lt;=^k__)[^|]+&quot;),
     phylum  = str_extract(full_taxonomy, &quot;(?&lt;=p__)[^|]+&quot;),
@@ -3106,33 +3158,7 @@ The regular expression starts with a positive lookbehind: <code>(?&lt;=pattern)<
   # remove unused columns
   select(where(~!all(is.na(.)))) %&gt;%
   mutate_if(is.character, tolower) %&gt;%
-  mutate_if(is.character, ~str_replace_all(., &#39; &#39;, &#39;_&#39;)) %&gt;%
-  glimpse</code></pre>
-<pre><code>## Rows: 12,060
-## Columns: 23
-## $ sort                           &lt;dbl&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, …
-## $ isolate_sort                   &lt;dbl&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …
-## $ realm                          &lt;chr&gt; &quot;adnaviria&quot;, &quot;adnaviria&quot;, &quot;adnaviria&quot;, …
-## $ kingdom                        &lt;chr&gt; &quot;zilligvirae&quot;, &quot;zilligvirae&quot;, &quot;zilligvi…
-## $ phylum                         &lt;chr&gt; &quot;taleaviricota&quot;, &quot;taleaviricota&quot;, &quot;tale…
-## $ subphylum                      &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
-## $ class                          &lt;chr&gt; &quot;tokiviricetes&quot;, &quot;tokiviricetes&quot;, &quot;toki…
-## $ order                          &lt;chr&gt; &quot;ligamenvirales&quot;, &quot;ligamenvirales&quot;, &quot;li…
-## $ suborder                       &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
-## $ family                         &lt;chr&gt; &quot;lipothrixviridae&quot;, &quot;lipothrixviridae&quot;,…
-## $ subfamily                      &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
-## $ genus                          &lt;chr&gt; &quot;alphalipothrixvirus&quot;, &quot;alphalipothrixv…
-## $ subgenus                       &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
-## $ species                        &lt;chr&gt; &quot;alphalipothrixvirus_sbfv2&quot;, &quot;alphalipo…
-## $ exemplar_or_additional_isolate &lt;chr&gt; &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;, &quot;e&quot;,…
-## $ virus_name_s                   &lt;chr&gt; &quot;sulfolobales_beppu_filamentous_virus_2…
-## $ virus_name_abbreviation_s      &lt;chr&gt; &quot;sbfv2&quot;, &quot;sfv1&quot;, &quot;afv3&quot;, &quot;afv6&quot;, &quot;afv7&quot;…
-## $ virus_isolate_designation      &lt;chr&gt; &quot;sbfv2_clone_b&quot;, &quot;sfv1_isolate_s48&quot;, NA…
-## $ virus_genbank_accession        &lt;chr&gt; &quot;mk064563&quot;, &quot;mh447526&quot;, &quot;am087120&quot;, &quot;am…
-## $ virus_refseq_accession         &lt;chr&gt; &quot;nc_048128&quot;, &quot;nc_048037&quot;, &quot;nc_010155&quot;, …
-## $ genome_coverage                &lt;chr&gt; &quot;complete_coding_genome&quot;, &quot;complete_gen…
-## $ genome_composition             &lt;chr&gt; &quot;dsdna&quot;, &quot;dsdna&quot;, &quot;dsdna&quot;, &quot;dsdna&quot;, &quot;ds…
-## $ host_source                    &lt;chr&gt; &quot;archaea&quot;, &quot;archaea&quot;, &quot;archaea&quot;, &quot;archa…</code></pre>
+  mutate_if(is.character, ~str_replace_all(., &#39; &#39;, &#39;_&#39;))</code></pre>
 <details>
 <summary>
 <em>Code explainer</em>
@@ -3254,10 +3280,10 @@ ictv_phenotype_cols = c(&#39;ictv_single_stranded_double_stranded&#39;, &#39;ict
 
 genus_composition &lt;- taxonomy_genome_composition %&gt;%
   group_by(ictv_genus) %&gt;%
-  filter(!duplicated(ictv_genus)) %&gt;%
   summarise(
     across(all_of(ictv_phenotype_cols), call_phenotype_cols)
-  )</code></pre>
+  ) %&gt;%
+  filter(!duplicated(ictv_genus))</code></pre>
 </div>
 <div id="merging-dataframes" class="section level3" number="3.3.3">
 <h3><span class="header-section-number">3.3.3</span> Merging dataframes</h3>
@@ -3305,7 +3331,13 @@ genus_composition &lt;- taxonomy_genome_composition %&gt;%
 <summary>
 <em>Code explainer</em>
 </summary>
-In summary, in the code above we do the following: First, we use <code>rowwise</code> to iterate through our <code>kraken_unique_viral_species</code> dataframe row by row. For each row we will append four values, <code>ictv_single_stranded_double_stranded</code>, <code>ictv_dna_rna</code>, <code>ictv_plus_minus</code>, and <code>ictv_rt_non_rt</code>. We then use <code>case_when</code> to go through three different if-conditions. The syntax of <code>case_when is as follows:     ```     case_when(         condition1 ~ value1,         condition2 ~ value2,         condition3 ~ value3         )     ```     Hence, here we check first if the species name of the current</code>kraken_species<code>row is present in the</code>ictv_virus_name_s<code>column of the</code>virus_name_composition<code>dataframe. If it is, we pull the genome composition informatoin from the respective line in the</code>virus_name_composition<code>dataframe. We do the same for the species and the genus dataframes (</code>species_composition<code>and</code>genus_composition<code>). Importantly, the values we pull from any of these  dataframe are transformed into a list; this is because</code>mutate<code>can only assign one column at a time. We thus create a column containing a list of the genome composition information for each row. Finally, we use</code>ungroup<code>to remove the grouping we created using</code>rowwise<code>. Then, we use</code>unnest_wider<code>to unnest the list we created using</code>case_when` and append the values to the dataframe.
+<p>In summary, in the code above we do the following: First, we use <code>rowwise</code> to iterate through our <code>kraken_unique_viral_species</code> dataframe row by row. For each row we will append four values, <code>ictv_single_stranded_double_stranded</code>, <code>ictv_dna_rna</code>, <code>ictv_plus_minus</code>, and <code>ictv_rt_non_rt</code>. We then use <code>case_when</code> to go through three different if-conditions. The syntax of `case_when is as follows:</p>
+<p>case_when(
+condition1 ~ value1,
+condition2 ~ value2,
+condition3 ~ value3
+)</p>
+Hence, here we check first if the species name of the current <code>kraken_species</code> row is present in the <code>ictv_virus_name_s</code> column of the <code>virus_name_composition</code> dataframe. If it is, we pull the genome composition informatoin from the respective line in the <code>virus_name_composition</code> dataframe. We do the same for the species and the genus dataframes (<code>species_composition</code> and <code>genus_composition</code>). Importantly, the values we pull from any of these dataframe are transformed into a list; this is because <code>mutate</code> can only assign one column at a time. We thus create a column containing a list of the genome composition information for each row. Finally, we use <code>ungroup</code> to remove the grouping we created using <code>rowwise</code>. Then, we use <code>unnest_wider</code> to unnest the list we created using <code>case_when</code> and append the values to the dataframe.
 </details>
 </div>
 </div>
