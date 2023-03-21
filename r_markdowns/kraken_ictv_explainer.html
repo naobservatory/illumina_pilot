@@ -567,15 +567,15 @@ table there are the following taxonomic ranks:</p>
 </tbody>
 </table>
 <p>The <code>Virus name(s)</code> column doesn’t exist in Kraken
-reports. So what we do next is the following:</p>
-<p>If Kraken2_taxonomy[Virus] == ICTV_taxonomy[Virus] OR
-ICTV_taxonomy[Virus name_s]: Kraken2_taxonomy[Genome composition] =
-ICTV_taxonomy[Genome composition]</p>
-<pre><code>Else If Kraken2_taxonomy[Genus] == ICTV_taxonomy[Genus]:
+reports. So what we do next is the following, written in pseudocode:</p>
+<pre><code>If Kraken2_taxonomy[Virus] == ICTV_taxonomy[Virus] OR ICTV_taxonomy[Virus name_s]:
     Kraken2_taxonomy[Genome composition] = ICTV_taxonomy[Genome composition]
 
-Else:
-    Kraken2_taxonomy[Genome composition] = &quot;NA&quot;</code></pre>
+    Else If Kraken2_taxonomy[Genus] == ICTV_taxonomy[Genus]:
+        Kraken2_taxonomy[Genome composition] = ICTV_taxonomy[Genome composition]
+
+    Else:
+        Kraken2_taxonomy[Genome composition] = &quot;NA&quot;</code></pre>
 </div>
 <div id="next-steps" class="section level2">
 <h2>Next steps:</h2>

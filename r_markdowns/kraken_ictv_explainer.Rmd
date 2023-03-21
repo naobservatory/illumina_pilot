@@ -75,8 +75,8 @@ Briefly we try to iteratively merge the two dataframes; working up the taxonomic
 | Betalipothrixvirus | Acidianus filamentous virus 6| Acidianus filamentous virus 6            |dsDNA               |
 
 
-The `Virus name(s)` column doesn't exist in Kraken reports. So what we do next is the following:
-
+The `Virus name(s)` column doesn't exist in Kraken reports. So what we do next is the following, written in pseudocode:
+```
 If Kraken2_taxonomy[Virus] == ICTV_taxonomy[Virus] OR ICTV_taxonomy[Virus name_s]:
 	Kraken2_taxonomy[Genome composition] = ICTV_taxonomy[Genome composition]
 
@@ -85,7 +85,7 @@ If Kraken2_taxonomy[Virus] == ICTV_taxonomy[Virus] OR ICTV_taxonomy[Virus name_s
 
 	Else:
 		Kraken2_taxonomy[Genome composition] = "NA"
-
+```
 ## Next steps:
  - Turn Simon's R Scripts into Pyhton scripts that can be integrated into Jeff's pipeline
  - Automate the download of the updated ICTV table
