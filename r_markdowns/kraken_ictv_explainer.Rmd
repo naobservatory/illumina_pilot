@@ -1,5 +1,5 @@
 ---
-title: "Kraken ICTIV Explainer"
+title: "Kraken ICTV Explainer"
 author: "Simon Grimm"
 date: "2023-03-21"
 output: html_document
