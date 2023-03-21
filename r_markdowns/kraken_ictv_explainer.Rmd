@@ -55,12 +55,12 @@ clade_coverage	fragments_covered	fragments_assigned	rank_code	ncbi_tax_id	scient
 | Taxonomy                                            | Count |
 | --------------------------------------------------- | ----- |
 | k__Bacteria                                         | 37951 |
-| k__Bacteria|p__Proteobacteria                       | 20709 |
-| k__Bacteria|p__Proteobacteria|c__Gammaproteobacteria | 9756 |
-| k__Bacteria|p__Proteobacteria|c__Gammaproteobacteria|o__Moraxellales | 2921 |
-| k__Bacteria|p__Proteobacteria|c__Gammaproteobacteria|o__Moraxellales|f__Moraxellaceae | 2921 |
-| k__Bacteria|p__Proteobacteria|c__Gammaproteobacteria|o__Moraxellales|f__Moraxellaceae|g__Acinetobacter	| 2699 |
-| k__Bacteria|p__Proteobacteria|c__Gammaproteobacteria|o__Moraxellales|f__Moraxellaceae|g__Acinetobacter|s__Acinetobacter_johnsonii	| 888 |
+| k__Bacteriap__Proteobacteria                       | 20709 |
+| k__Bacteriap__Proteobacteriac__Gammaproteobacteria | 9756 |
+| k__Bacteriap__Proteobacteriac__Gammaproteobacteriao__Moraxellales | 2921 |
+| k__Bacteriap__Proteobacteriac__Gammaproteobacteriao__Moraxellalesf__Moraxellaceae | 2921 |
+| k__Bacteriap__Proteobacteriac__Gammaproteobacteriao__Moraxellalesf__Moraxellaceaeg__Acinetobacter	| 2699 |
+| k__Bacteriap__Proteobacteriac__Gammaproteobacteriao__Moraxellalesf__Moraxellaceaeg__Acinetobacters__Acinetobacter_johnsonii	| 888 |
 ### Merging dataframes
 
 Full directions on how to merge dataframes can be found in this HTML report https://naobservatory.github.io/illumina_pilot/r_markdowns/Illumina_kraken2_import.html.
