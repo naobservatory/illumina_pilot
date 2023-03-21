@@ -2,26 +2,8 @@
 title: "Kraken ICTV Explainer"
 author: "Simon Grimm"
 date: "2023-03-21"
-description: |
-categories:
-draft: false
-output:
-  bookdown::html_document2:
-    toc: yes
-    toc_float: yes
-    toc_collapsed: yes
-    df_print: paged
-    code_folding: show
-    theme: lumen
-    warning: false
-    cache: true
-    echo: false
-    autodep: true
-    cache.comment: false
-    dpi: 300
-editor_options:
-  markdown:
-    wrap: 72
+output: html_document
+
 ---
 
 # Linking Kraken data with ICTV metadata
@@ -35,6 +17,7 @@ Additionally it would be useful to analyze which pathogens are DNA/RNA based, or
 ICTV Metadata tables are updated every few months. The most recent table can be found as a [google sheet here](https://docs.google.com/spreadsheets/d/1mufrHxLlTnDR37YLnWeauXYXTm0dZKXYoPOiMemP2GY/edit?usp=sharing).
 
 For most species in the ICTV table we have the following additional information that is relevant to us:
+
  * genome information (DNA/RNA, single/double stranded, positive/negative sense, retrovirus or not)
  * Complete taxonomy
  * Virus GENBANK and REFSEQ accession numbers
