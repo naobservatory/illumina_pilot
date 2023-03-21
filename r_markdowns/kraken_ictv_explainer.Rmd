@@ -16,10 +16,10 @@ Additionally it would be useful to analyze which pathogens are DNA/RNA based, or
 ICTV Metadata tables are updated every few months. The most recent table can be found as a [google sheet here](https://docs.google.com/spreadsheets/d/1mufrHxLlTnDR37YLnWeauXYXTm0dZKXYoPOiMemP2GY/edit?usp=sharing).
 
 For most species in the ICTV table we have the following additional information that is relevant to us:
- - genome information (DNA/RNA, single/double stranded, positive/negative sense, retrovirus or not)
- - Complete taxonomy
- - Virus GENBANK and REFSEQ accession numbers
- - Host source (only at the level or archaea, bacteria, eukaryota)
+ * genome information (DNA/RNA, single/double stranded, positive/negative sense, retrovirus or not)
+ * Complete taxonomy
+ * Virus GENBANK and REFSEQ accession numbers
+ * Host source (only at the level or archaea, bacteria, eukaryota)
 
 ### Linking Kraken2 results with ICTV metadata
 
