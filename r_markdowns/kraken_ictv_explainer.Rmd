@@ -59,7 +59,7 @@ clade_coverage	fragments_covered	fragments_assigned	rank_code	ncbi_tax_id	scient
 | k__Bacteriap__Proteobacteriac__Gammaproteobacteria | 9756 |
 | k__Bacteriap__Proteobacteriac__Gammaproteobacteriao__Moraxellales | 2921 |
 | k__Bacteriap__Proteobacteriac__Gammaproteobacteriao__Moraxellalesf__Moraxellaceae | 2921 |
-| k__Bacteriap__Proteobacteriac__Gammaproteobacteriao__Moraxellalesf__Moraxellaceaeg__Acinetobacter	| 2699 |
+| k__Bacteriap__Proteobacteriac__Gammaproteobacteriao__Moraxellalesf__Moraxellaceaeg__Acinetobacters	| 2699 |
 | k__Bacteriap__Proteobacteriac__Gammaproteobacteriao__Moraxellalesf__Moraxellaceaeg__Acinetobacters__Acinetobacter_johnsonii	| 888 |
 ### Merging dataframes
 
