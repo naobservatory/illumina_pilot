@@ -8,7 +8,7 @@ DNA sequences that are analyzed here stem from 12 Illumina samples; gained from 
 
 More information on the sequencing runs can be found [here](https://docs.google.com/document/d/1QiYgZGewYyg2gFzawYGRzTuMXbvwpJsTy27k3IrH3fQ/edit#)(only accessible for NAO members).
 
-# TODOs
-- [ ] add more information on the samples
-- [ ] add more information on the sequencing runs and wetlab protocols
-- [ ] Fix genome composition assignment in Illumina_kraken2_import.Rmd (function: `call_phenotype_cols`)
+## Next steps:
+ - Turn Simon's R Scripts into Pyhton scripts that can be integrated into Jeff's pipeline
+ - Automate the download of the updated ICTV table
+

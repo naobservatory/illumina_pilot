@@ -1,0 +1,86 @@
+---
+title: "Kraken ICTIV Explainer"
+author: "Simon Grimm"
+date: "2023-03-21"
+output: html_document
+---
+
+# Linking Kraken data with ICTV metadata
+
+With our Kraken results we can already make conclusions on the abundances of different viral species, genera or other taxa within our sample.
+
+Additionally it would be useful to analyze which pathogens are DNA/RNA based, or single stranded vs double stranded. This information is not available in the Kraken results, but can be obtained from the International Committee on Taxonomy of Viruses (ICTV) metadata, found here: https://ictv.global/vmr.
+
+# ICTV Metadata
+
+ICTV Metadata tables are updated every few months. The most recent table can be found as a [google sheet here](https://docs.google.com/spreadsheets/d/1mufrHxLlTnDR37YLnWeauXYXTm0dZKXYoPOiMemP2GY/edit?usp=sharing).
+
+For most species in the ICTV table we have the following additional information that is relevant to us:
+ - genome information (DNA/RNA, single/double stranded, positive/negative sense, retrovirus or not)
+ - Complete taxonomy
+ - Virus GENBANK and REFSEQ accession numbers
+ - Host source (only at the level or archaea, bacteria, eukaryota)
+
+# Linking Kraken2 results with ICTV metadata
+
+Using both the full taxonomic information of Kraken2 and the ICTV metadata we can link the two datasets and obtain information on the genome composition of our samples.
+
+## Creating full taxonomies for Kraken2 results
+
+For this we first need to create full taxonomies for our kraken2 results. For this we can use a Python script called report2mpa.py, created by one of the Kraken2 developers, found [here](https://github.com/jenniferlu717/KrakenTools/blob/master/kreport2mpa.py)
+
+The script itself is easy to use, like so:
+
+`python3 local_scripts/KrakenTools/kreport2mpa_older_version.py -r $[kraken_report] -o $[kraken_taxonomy]`
+
+Comparing the different results, we  can look at the first few lines of an input and an output file:
+
+**Input kraken report**
+clade_coverage	fragments_covered	fragments_assigned	rank_code	ncbi_tax_id	scientific_name
+
+| clade_coverage | fragments_covered   | fragments_assigned | rank_code | ncbi_tax_id | scientific_name |
+| ---------- | ------- | ------------- | ---- | ------ | ------------------- |
+| 3.40       | 37951   | 775           | D    | 2      | Bacteria            |
+| 1.86       | 20709   | 379           | P    | 1224   | Proteobacteria      |
+| 0.88       | 9756    | 178           | C    | 1236   | Gammaproteobacteria |
+| 0.26       | 2921    | 0             | O    | 2887326| Moraxellales        |
+| 0.26       | 2921    | 2             | F    | 468    | Moraxellaceae       |
+
+**Output kraken taxonomy**
+
+| Taxonomy                                            | Count |
+| --------------------------------------------------- | ----- |
+| k__Bacteria                                         | 37951 |
+| k__Bacteria|p__Proteobacteria                       | 20709 |
+| k__Bacteria|p__Proteobacteria|c__Gammaproteobacteria | 9756 |
+| k__Bacteria|p__Proteobacteria|c__Gammaproteobacteria|o__Moraxellales | 2921 |
+| k__Bacteria|p__Proteobacteria|c__Gammaproteobacteria|o__Moraxellales|f__Moraxellaceae | 2921 |
+
+## Merging dataframes
+
+Full directions on how to merge dataframes can be found in this HTML report https://naobservatory.github.io/illumina_pilot/r_markdowns/Illumina_kraken2_import.html.
+
+Briefly we try to iteratively merge the two dataframes; working up the taxonomic tree in case of continued mismatches. E.g. in the ICTV table there are the following taxonomic ranks:
+
+| Genus              | Subgenus                     | Virus name(s)                            | Genome composition|
+| ------------------ | ---------------------------- | ---------------------------------------- | -------------------|
+| Alphalipothrixvirus| Alphalipothrixvirus          | Sulfolobales Beppu filamentous virus 2   |dsDNA               |
+| Alphalipothrixvirus| Alphalipothrixvirus          | Sulfolobus filamentous virus 1           |dsDNA               |
+| Betalipothrixvirus | Acidianus filamentous virus 3| Acidianus filamentous virus 3            |dsDNA               |
+| Betalipothrixvirus | Acidianus filamentous virus 6| Acidianus filamentous virus 6            |dsDNA               |
+
+
+The `Virus name(s)` column doesn't exist in Kraken reports. What we does do is the following:
+
+If Kraken2_taxonomy[Virus] == ICTV_taxonomy[Virus] OR ICTV_taxonomy[Virus name_s]:
+	Kraken2_taxonomy[Genome composition] = ICTV_taxonomy[Genome composition]
+
+	Else If Kraken2_taxonomy[Genus] == ICTV_taxonomy[Genus]:
+		Kraken2_taxonomy[Genome composition] = ICTV_taxonomy[Genome composition]
+
+	Else:
+		Kraken2_taxonomy[Genome composition] = "NA"
+
+## Next steps:
+ - Turn Simon's R Scripts into Pyhton scripts that can be integrated into Jeff's pipeline
+ - Automate the download of the updated ICTV table
