@@ -367,9 +367,8 @@ DNA/RNA based, or single stranded vs double stranded. This information
 is not available in the Kraken results, but can be obtained from the
 International Committee on Taxonomy of Viruses (ICTV) metadata, found
 here: <a href="https://ictv.global/vmr" class="uri">https://ictv.global/vmr</a>.</p>
-</div>
-<div id="ictv-metadata" class="section level1">
-<h1>ICTV Metadata</h1>
+<div id="ictv-metadata" class="section level3">
+<h3>ICTV Metadata</h3>
 <p>ICTV Metadata tables are updated every few months. The most recent
 table can be found as a <a href="https://docs.google.com/spreadsheets/d/1mufrHxLlTnDR37YLnWeauXYXTm0dZKXYoPOiMemP2GY/edit?usp=sharing">google
 sheet here</a>.</p>
@@ -379,13 +378,14 @@ single/double stranded, positive/negative sense, retrovirus or not) -
 Complete taxonomy - Virus GENBANK and REFSEQ accession numbers - Host
 source (only at the level or archaea, bacteria, eukaryota)</p>
 </div>
-<div id="linking-kraken2-results-with-ictv-metadata" class="section level1">
-<h1>Linking Kraken2 results with ICTV metadata</h1>
+<div id="linking-kraken2-results-with-ictv-metadata" class="section level3">
+<h3>Linking Kraken2 results with ICTV metadata</h3>
 <p>Using both the full taxonomic information of Kraken2 and the ICTV
 metadata we can link the two datasets and obtain information on the
 genome composition of our samples.</p>
-<div id="creating-full-taxonomies-for-kraken2-results" class="section level2">
-<h2>Creating full taxonomies for Kraken2 results</h2>
+</div>
+<div id="creating-full-taxonomies-for-kraken2-results" class="section level3">
+<h3>Creating full taxonomies for Kraken2 results</h3>
 <p>For this we first need to create full taxonomies for our kraken2
 results. For this we can use a Python script called report2mpa.py,
 created by one of the Kraken2 developers, found <a href="https://github.com/jenniferlu717/KrakenTools/blob/master/kreport2mpa.py">here</a></p>
@@ -455,6 +455,22 @@ fragments_assigned rank_code ncbi_tax_id scientific_name</p>
 <td>468</td>
 <td>Moraxellaceae</td>
 </tr>
+<tr class="even">
+<td>0.24</td>
+<td>2699</td>
+<td>353</td>
+<td>G</td>
+<td>469</td>
+<td>Acinetobacter</td>
+</tr>
+<tr class="odd">
+<td>0.08</td>
+<td>888</td>
+<td>849</td>
+<td>S</td>
+<td>40214</td>
+<td>Acinetobacter johnsonii</td>
+</tr>
 </tbody>
 </table>
 <p><strong>Output kraken taxonomy</strong></p>
@@ -486,11 +502,19 @@ fragments_assigned rank_code ncbi_tax_id scientific_name</p>
 <td>k__Bacteria</td>
 <td>p__Proteobacteria</td>
 </tr>
+<tr class="even">
+<td>k__Bacteria</td>
+<td>p__Proteobacteria</td>
+</tr>
+<tr class="odd">
+<td>k__Bacteria</td>
+<td>p__Proteobacteria</td>
+</tr>
 </tbody>
 </table>
 </div>
-<div id="merging-dataframes" class="section level2">
-<h2>Merging dataframes</h2>
+<div id="merging-dataframes" class="section level3">
+<h3>Merging dataframes</h3>
 <p>Full directions on how to merge dataframes can be found in this HTML
 report <a href="https://naobservatory.github.io/illumina_pilot/r_markdowns/Illumina_kraken2_import.html" class="uri">https://naobservatory.github.io/illumina_pilot/r_markdowns/Illumina_kraken2_import.html</a>.</p>
 <p>Briefly we try to iteratively merge the two dataframes; working up
@@ -539,7 +563,7 @@ table there are the following taxonomic ranks:</p>
 </tbody>
 </table>
 <p>The <code>Virus name(s)</code> column doesn’t exist in Kraken
-reports. What we does do is the following:</p>
+reports. So what we do next is the following:</p>
 <p>If Kraken2_taxonomy[Virus] == ICTV_taxonomy[Virus] OR
 ICTV_taxonomy[Virus name_s]: Kraken2_taxonomy[Genome composition] =
 ICTV_taxonomy[Genome composition]</p>
@@ -555,6 +579,7 @@ Else:
 <li>Turn Simon’s R Scripts into Pyhton scripts that can be integrated
 into Jeff’s pipeline</li>
 <li>Automate the download of the updated ICTV table</li>
+<li>Clean up this explainer</li>
 </ul>
 </div>
 </div>
